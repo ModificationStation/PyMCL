@@ -1,4 +1,4 @@
-import os,urllib.request,sys,threading,config,json,requests,subprocess,time,math
+import os,urllib.request,sys,threading,config,json,requests,subprocess,time,math,json
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QLineEdit, QMessageBox, QDialog
 from PyQt5.QtGui import QIcon, QPixmap, QImageReader, QPainter
 from PyQt5.QtCore import pyqtSlot, Qt, pyqtSignal, QUrl
@@ -21,6 +21,16 @@ def resource_path(relative_path):
 config.ICON=resource_path(config.ICON)
 config.LOGO=resource_path(config.LOGO)
 config.BOTTOM_BACKGROUND=resource_path(config.BOTTOM_BACKGROUND)
+
+def getSetting(setting):
+    if os.path.exists(config.MC_DIR+"/launcher_config.json") == False:
+        file=open(config.MC_DIR+"/launcher_config.json", "w")
+        file.write(config.DEFAULT_CONFIG)
+        file.close()
+
+    file=open(config.MC_DIR+"/launcher_config.json", "r")
+    json.loads(file.read())
+
 
 class mainWindow(QWidget):
     guiElements=[]
@@ -203,19 +213,23 @@ class optionWindow(QDialog):
         self.setFixedSize(self.size())
         self.createLabels()
         self.createSettingInputs()
+        self.createButtons()
 
     def createSettingInputs(self):
         self.javaArgs=QLineEdit(self)
         self.javaArgs.resize(310, 24)
         self.javaArgs.move(150, 20)
+        self.javaArgs.text(getSetting("javaargs"))
 
         self.maxRamAllocation=QLineEdit(self)
         self.maxRamAllocation.resize(100, 24)
         self.maxRamAllocation.move(150+55, 20+4+24)
+        self.maxRamAllocation.text(getSetting("maxram"))
 
         self.minRamAllocation=QLineEdit(self)
         self.minRamAllocation.resize(100, 24)
         self.minRamAllocation.move(150+50+60+100, 20+4+24)
+        self.minRamAllocation.text(getSetting("minram"))
 
     def createLabels(self):
         self.javaArgsLabel=QLabel(self, text="Java arguments:")
@@ -234,7 +248,15 @@ class optionWindow(QDialog):
         self.minRamAllocationLabel.move(20+100+150+40, 22+6+22)
         self.minRamAllocationLabel.resize(100, 20)
 
+    def createButtons(self):
+        self.saveButton=QPushButton("Save")
+        self.saveButton.resize(80, 24)
+        self.saveButton.move(self.size().width()-(self.saveButton.size().width()/2), self.size().height()-30)
+        self.saveButton.clicked.connect(self.saveSettings)
 
+    def closeEvent(self, *args, **kwargs):
+        super(QtGui.QMainWindow, self).closeEvent(*args, **kwargs)
+        print("you just closed the pyqt window!!! you are awesome!!!")
 
 app = QApplication(sys.argv)
 mainWin = mainWindow()
