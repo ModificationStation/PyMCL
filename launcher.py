@@ -4,33 +4,38 @@ from PyQt5.QtGui import QIcon, QPixmap, QImageReader, QPainter
 from PyQt5.QtCore import pyqtSlot, Qt, pyqtSignal, QUrl
 from PyQt5.QtWebEngineWidgets import *
 
-update=True
-prc=""
-running=False
-threadingEvent=threading.Event()
-
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.abspath(".")
 
-    return os.path.join(base_path, relative_path)
+    return base_path+"/"+relative_path
 
+def load_image(relative_path):
+    try:
+        img=QPixmap(config.MC_DIR+"/theme/"+relative_path)
+    except:
+        img=QPixmap(resource_path(relative_path))
 
-config.ICON=resource_path(config.ICON)
-config.LOGO=resource_path(config.LOGO)
-config.BOTTOM_BACKGROUND=resource_path(config.BOTTOM_BACKGROUND)
+    return img
 
-def getSetting(setting):
+def loadSettings():
+    global launcherConfig
+    print("Loading...")
     if os.path.exists(config.MC_DIR+"/launcher_config.json") == False:
         file=open(config.MC_DIR+"/launcher_config.json", "w")
         file.write(config.DEFAULT_CONFIG)
         file.close()
-
     file=open(config.MC_DIR+"/launcher_config.json", "r")
-    json.loads(file.read())
+    launcherConfig=json.loads(file.read())
+    file.close()
+    print("Loaded!")
 
+def saveSettings(): ## TODO: VAR launcherConfig INTO JSON IN .minecraft
+    file=open(config.MC_DIR+"/launcher_config.json", "w")
+    file.write(json.dumps(launcherConfig, indent=4, sort_keys=True))
+    file.close()
 
 class mainWindow(QWidget):
     guiElements=[]
@@ -199,6 +204,7 @@ class mainWindow(QWidget):
 class optionWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        loadSettings()
         screen_resolution = app.desktop().screenGeometry()
         self.title = config.NAME+" "+config.VER+" Options"
         self.setWindowIcon(QIcon(config.ICON))
@@ -212,24 +218,22 @@ class optionWindow(QDialog):
         self.setGeometry(self.left, self.top, 480, 240)
         self.setFixedSize(self.size())
         self.createLabels()
-        self.createSettingInputs()
         self.createButtons()
+        self.createSettingInputs()
 
     def createSettingInputs(self):
-        self.javaArgs=QLineEdit(self)
+        global launcherConfig
+        self.javaArgs=QLineEdit(self, text=launcherConfig["javaargs"])
         self.javaArgs.resize(310, 24)
         self.javaArgs.move(150, 20)
-        self.javaArgs.text(getSetting("javaargs"))
 
-        self.maxRamAllocation=QLineEdit(self)
+        self.maxRamAllocation=QLineEdit(self, text=launcherConfig["maxram"])
         self.maxRamAllocation.resize(100, 24)
         self.maxRamAllocation.move(150+55, 20+4+24)
-        self.maxRamAllocation.text(getSetting("maxram"))
 
-        self.minRamAllocation=QLineEdit(self)
+        self.minRamAllocation=QLineEdit(self, text=launcherConfig["minram"])
         self.minRamAllocation.resize(100, 24)
         self.minRamAllocation.move(150+50+60+100, 20+4+24)
-        self.minRamAllocation.text(getSetting("minram"))
 
     def createLabels(self):
         self.javaArgsLabel=QLabel(self, text="Java arguments:")
@@ -251,14 +255,28 @@ class optionWindow(QDialog):
     def createButtons(self):
         self.saveButton=QPushButton("Save")
         self.saveButton.resize(80, 24)
-        self.saveButton.move(self.size().width()-(self.saveButton.size().width()/2), self.size().height()-30)
-        self.saveButton.clicked.connect(self.saveSettings)
+        self.saveButton.move(20, 20)
+        self.saveButton.clicked.connect(saveSettings)
 
     def closeEvent(self, *args, **kwargs):
-        super(QtGui.QMainWindow, self).closeEvent(*args, **kwargs)
-        print("you just closed the pyqt window!!! you are awesome!!!")
+        global launcherConfig
+        launcherConfig["javaargs"]=self.javaArgs.text()
+        launcherConfig["minram"]=self.minRamAllocation.text()
+        launcherConfig["maxram"]=self.maxRamAllocation.text()
+        saveSettings()
+
+loadSettings()
+
+update=True
+prc=""
+running=False
+threadingEvent=threading.Event()
 
 app = QApplication(sys.argv)
 mainWin = mainWindow()
+config.ICON=load_image(config.ICON)
+config.LOGO=load_image(config.LOGO)
+config.BOTTOM_BACKGROUND=load_image(config.BOTTOM_BACKGROUND)
 
 sys.exit(app.exec_())
+sys.exit()
