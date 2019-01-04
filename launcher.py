@@ -22,7 +22,6 @@ def load_image(relative_path):
 
 def loadSettings():
     global launcherConfig
-    print("Loading...")
     if os.path.exists(config.MC_DIR+"/launcher_config.json") == False:
         file=open(config.MC_DIR+"/launcher_config.json", "w")
         file.write(config.DEFAULT_CONFIG)
@@ -30,7 +29,6 @@ def loadSettings():
     file=open(config.MC_DIR+"/launcher_config.json", "r")
     launcherConfig=json.loads(file.read())
     file.close()
-    print("Loaded!")
 
 def saveSettings(): ## TODO: VAR launcherConfig INTO JSON IN .minecraft
     file=open(config.MC_DIR+"/launcher_config.json", "w")
@@ -53,6 +51,7 @@ class mainWindow(QWidget):
         self.initUI()
 
     def initUI(self):
+        global threadingEvent
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, 854, 480)
         ##self.setFixedSize(self.size())
@@ -114,7 +113,8 @@ class mainWindow(QWidget):
         self.guiElements.append(self.optionButton)
 
     def createLogin(self):
-        self.loginBox=QLineEdit(self)
+        global launcherConfig
+        self.loginBox=QLineEdit(self, text=launcherConfig["lastusedname"])
         self.guiMove.append([-255, -(35+22+4+22)])
         self.loginBox.resize(166, 22)
         self.guiElements.append(self.loginBox)
@@ -161,7 +161,7 @@ class mainWindow(QWidget):
 #Game ---------------------------------------------------------------------------------------
 
     def checkAlive(self, threadingEvent):
-        global prc
+        global prc, checkAliveTimer
         try:
             poll = prc.poll()
             if poll == None:
@@ -175,10 +175,11 @@ class mainWindow(QWidget):
             except: pass
             running=False
         if not threadingEvent.is_set():
-            threading.Timer(1, self.checkAlive, [threadingEvent]).start()
+            checkAliveTimer=threading.Timer(1, self.checkAlive, [threadingEvent])
+            checkAliveTimer.start()
 
     def launch(self):
-        global prc
+        global prc, launcherConfig
         try: prc.kill()
         except: pass
         try:
@@ -186,7 +187,9 @@ class mainWindow(QWidget):
                 raise(TypeError)
             elif self.loginBox.text().isalnum() == False:
                 raise(TypeError)
-            prc=subprocess.Popen('java -Xms{} -Xmx{} -cp "{}\\bin\\minecraft.jar;{}\\bin\\jinput.jar;{}\\bin\\lwjgl.jar;{}\\bin\\lwjgl_util.jar" -Djava.library.path="{}\\bin\\natives" net.minecraft.client.Minecraft {}'.format("256m","256m",config.MC_DIR,config.MC_DIR,config.MC_DIR,config.MC_DIR,config.MC_DIR,self.loginBox.text()))
+            prc=subprocess.Popen('java {} -Xms{} -Xmx{} -cp "{}\\bin\\minecraft.jar;{}\\bin\\jinput.jar;{}\\bin\\lwjgl.jar;{}\\bin\\lwjgl_util.jar" -Djava.library.path="{}\\bin\\natives" net.minecraft.client.Minecraft {}'.format(launcherConfig["javaargs"],launcherConfig["minram"],launcherConfig["maxram"],config.MC_DIR,config.MC_DIR,config.MC_DIR,config.MC_DIR,config.MC_DIR,launcherConfig["lastusedname"]))
+            launcherConfig["lastusedname"]=self.loginBox.text()
+            saveSettings()
         except TypeError as exc:
             self.error("Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.")
 
@@ -200,6 +203,10 @@ class mainWindow(QWidget):
             prc.kill()
             prc=""
         except Exception as exc: pass
+
+    def closeEvent(self, event):
+        global checkAliveTimer
+        checkAliveTimer.cancel()
 
 class optionWindow(QDialog):
     def __init__(self, parent=None):
@@ -218,7 +225,6 @@ class optionWindow(QDialog):
         self.setGeometry(self.left, self.top, 480, 240)
         self.setFixedSize(self.size())
         self.createLabels()
-        self.createButtons()
         self.createSettingInputs()
 
     def createSettingInputs(self):
@@ -252,13 +258,7 @@ class optionWindow(QDialog):
         self.minRamAllocationLabel.move(20+100+150+40, 22+6+22)
         self.minRamAllocationLabel.resize(100, 20)
 
-    def createButtons(self):
-        self.saveButton=QPushButton("Save")
-        self.saveButton.resize(80, 24)
-        self.saveButton.move(20, 20)
-        self.saveButton.clicked.connect(saveSettings)
-
-    def closeEvent(self, *args, **kwargs):
+    def closeEvent(self, event, *args, **kwargs):
         global launcherConfig
         launcherConfig["javaargs"]=self.javaArgs.text()
         launcherConfig["minram"]=self.minRamAllocation.text()
@@ -279,4 +279,3 @@ config.LOGO=load_image(config.LOGO)
 config.BOTTOM_BACKGROUND=load_image(config.BOTTOM_BACKGROUND)
 
 sys.exit(app.exec_())
-sys.exit()

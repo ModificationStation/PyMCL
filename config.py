@@ -43,7 +43,8 @@ DEFAULT_CONFIG="""
 {
     "maxram": "256m",
     "minram": "256m",
-    "javaargs": ""
+    "javaargs": "",
+    "lastusedname": ""
 }
 """
 
