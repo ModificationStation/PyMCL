@@ -5,17 +5,16 @@ from PyQt5.QtCore import pyqtSlot, Qt, pyqtSignal, QUrl
 from PyQt5.QtWebEngineWidgets import *
 
 def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     return base_path+"/"+relative_path
 
 def load_image(relative_path):
     try:
+        if os.path.exists(config.MC_DIR+"/theme/"+relative_path) == False:
+            print("No Theme")
+            raise(IOError)
         img=QPixmap(config.MC_DIR+"/theme/"+relative_path)
-    except:
+    except IOError:
         img=QPixmap(resource_path(relative_path))
 
     return img
@@ -273,9 +272,9 @@ running=False
 threadingEvent=threading.Event()
 
 app = QApplication(sys.argv)
-mainWin = mainWindow()
 config.ICON=load_image(config.ICON)
 config.LOGO=load_image(config.LOGO)
 config.BOTTOM_BACKGROUND=load_image(config.BOTTOM_BACKGROUND)
+mainWin = mainWindow()
 
 sys.exit(app.exec_())
