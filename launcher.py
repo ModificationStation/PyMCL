@@ -189,7 +189,7 @@ class mainWindow(QWidget):
             prc=subprocess.Popen('java {} -Xms{} -Xmx{} -cp "{}\\bin\\minecraft.jar;{}\\bin\\jinput.jar;{}\\bin\\lwjgl.jar;{}\\bin\\lwjgl_util.jar" -Djava.library.path="{}\\bin\\natives" net.minecraft.client.Minecraft {}'.format(launcherConfig["javaargs"],launcherConfig["minram"],launcherConfig["maxram"],config.MC_DIR,config.MC_DIR,config.MC_DIR,config.MC_DIR,config.MC_DIR,launcherConfig["lastusedname"]))
             launcherConfig["lastusedname"]=self.loginBox.text()
             saveSettings()
-        except TypeError as exc:
+        except Exception as exc:
             self.error("Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.")
 
     def error(self, err):

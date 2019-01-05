@@ -12,3 +12,4 @@ cefpython/
 __pycache__/
 
 launcher.spec
+src\.zip

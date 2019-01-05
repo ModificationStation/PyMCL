@@ -47,7 +47,7 @@ DEFAULT_CONFIG="""
     "lastusedname": ""
 }
 """
-
-VER="Launcher v0.1 Alpha"
+# Debug purposes. If you change this, all users complaining about crashes, etc, becomes your problem.
+VER="Launcher v0.2 Alpha"
 
 MC_DIR=appdirs.user_data_dir(".minecraft", "", roaming=True)
