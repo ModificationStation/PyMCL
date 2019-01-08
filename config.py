@@ -1,10 +1,11 @@
 import appdirs, os, sys
-TEST_URL="http://google.cn/generate_204" # to be hardcoded.
-NAME="Minecraft"
-BOTTOM_BACKGROUND="dirt.png" # to be removed for theming support.
-LOGO="logo.png" # to be removed for theming support.
-ICON="favicon.png" # to be removed for theming support.
-UPDATE_URL="https://github.com/calmilamsy/b1.7.3_minecraft_launcher/raw/master/version.json"
+
+TEST_URL = "http://google.cn/generate_204"  # to be hardcoded.
+NAME = "Minecraft"
+BOTTOM_BACKGROUND = "dirt.png"  # to be removed for theming support.
+LOGO = "logo.png"  # to be removed for theming support.
+ICON = "favicon.png"  # to be removed for theming support.
+UPDATE_URL = "https://github.com/calmilamsy/b1.7.3_minecraft_launcher/raw/master/version.json"
 
 ##version.json:
 ##    Should have this format:
@@ -31,7 +32,7 @@ UPDATE_URL="https://github.com/calmilamsy/b1.7.3_minecraft_launcher/raw/master/v
 #        Rawfile:
 #            Any link that directly gives a zip, 7z or rar file as response. (e.g: "https://github.com/user/project/raw/master/modpack.zip")
 #    Link:
-#        Anything that isnt a zip, 7z or rar file will be put in .minecraft.
+#        Anything that isn't a zip, 7z or rar file will be put in .minecraft.
 #        Mediafire:
 #            A mediafire folder ID.
 #        Rawfile:
@@ -39,7 +40,7 @@ UPDATE_URL="https://github.com/calmilamsy/b1.7.3_minecraft_launcher/raw/master/v
 
 # DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING
 
-DEFAULT_CONFIG="""
+DEFAULT_CONFIG = """
 {
     "maxram": "256m",
     "minram": "256m",
@@ -48,6 +49,6 @@ DEFAULT_CONFIG="""
 }
 """
 # Debug purposes. If you change this, all users complaining about crashes, etc, becomes your problem.
-VER="Launcher v0.2 Alpha"
+VER = "Launcher v0.2 Alpha"
 
-MC_DIR=appdirs.user_data_dir(".minecraft", "", roaming=True)
+MC_DIR = appdirs.user_data_dir(".minecraft", "", roaming=True)
