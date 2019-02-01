@@ -1,10 +1,10 @@
-import appdirs, os, sys
+import appdirs
 
 TEST_URL = "http://google.cn/generate_204"  # to be hardcoded.
 NAME = "Minecraft"
-BOTTOM_BACKGROUND = "dirt.png"  # to be removed for theming support.
-LOGO = "logo.png"  # to be removed for theming support.
-ICON = "favicon.png"  # to be removed for theming support.
+ICON = ""
+LOGO = ""
+BACKGROUND = ""
 UPDATE_URL = "https://github.com/calmilamsy/b1.7.3_minecraft_launcher/raw/master/version.json"
 
 ##version.json:
@@ -49,6 +49,6 @@ DEFAULT_CONFIG = """
 }
 """
 # Debug purposes. If you change this, all users complaining about crashes, etc, becomes your problem.
-VER = "Launcher v0.2 Alpha"
+VER = "Launcher v0.3 Alpha"
 
 MC_DIR = appdirs.user_data_dir(".minecraft", "", roaming=True)
