@@ -1,7 +1,7 @@
 {
-	"LowMango's Modpack": {
-		"LatestVersion": 1.5,
-		"MediaFireID": "b1yv2baktdkqhry",
-		"Description": "LowMango's modpack for beta 1.7.3!\nIncludes many bugfixes and content from old versions!"
+	"Example Modpack": {
+		"latestVersion": 1.0,
+		"modpackLink": "https://github.com/ModificationStation/PyMCL/raw/master/modpacks.json",
+		"description": "An example modpack containing vanilla b1.7.3"
 	}
 }
