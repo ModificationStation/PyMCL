@@ -3,50 +3,55 @@ import utils
 from json import loads, dumps
 from math import ceil
 from os.path import abspath, exists
-from os import makedirs
+from os import makedirs, listdir, startfile, chdir
 from requests import get as reqGet
 from subprocess import Popen
 import sys
 import threading
+import shutil
+import platform
+import traceback
+import shlex
 
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import pyqtSlot, Qt, QUrl
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QLineEdit, QMessageBox, QDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QLineEdit, QMessageBox, QDialog, QTabWidget, QComboBox, QScrollArea
 
 class mainWindow(QWidget):
     guiElements = []
     dirt = []
     guiMove = []
+    instanceSelect = ""
 
     def __init__(self):
         super().__init__()
+        utils.areYouThere(config.MC_DIR+"/instances")
         screen_resolution = app.desktop().screenGeometry()
         self.title = config.NAME + " " + config.VER
+        config.ICON = utils.loadImage("favicon.ico", currentInstance)
         self.setWindowIcon(QIcon(config.ICON))
+        config.LOGO = utils.loadImage("logo.png", currentInstance)
+        config.BACKGROUND = utils.loadImage("background.png", currentInstance)
         self.left = screen_resolution.width() / 2 - (854 / 2)
         self.top = screen_resolution.height() / 2 - (480 / 2)
-        self.dirtImage = QPixmap(config.BACKGROUND)
-        self.logoImage = QPixmap(config.LOGO)
         global launcherConfig
-        launcherConfig = utils.loadSettings(mainWindow)
+        launcherConfig = utils.loadSettings()
         self.initUI()
 
     def initUI(self):
         global threadingEvent, update
+        update = utils.checkOnline()
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, 854, 480)
         self.colorBackground()
         self.createButtons()
         self.createLogin()
+        self.createDropdowns()
         self.createLogo()
         self.createTheInternet()
         self.show()
         self.checkAlive(threadingEvent)
-        r = reqGet(config.TEST_URL)
-        if r.status_code != 204:
-            self.error("Unable to connect to the internet. Updates are disabled.")
-            update = False
 
     @pyqtSlot()
     def resizeEvent(self, event):
@@ -61,20 +66,52 @@ class mainWindow(QWidget):
 
     @pyqtSlot()
     def login(self):
-        self.launch()
+        global username
+        if self.passBox.text() != "":
+            username = utils.login(self.loginBox.text(), self.passBox.text())
+            if isinstance(username, str):
+                self.launch()
+            else:
+                self.error("Invalid credidentials.")
+        else:
+            username = self.loginBox.text()
+            self.launch()
+
         self.loginButton.setEnabled(False)
         self.loginBox.setEnabled(False)
+        self.passBox.setEnabled(False)
         self.optionButton.setEnabled(False)
 
     @pyqtSlot()
     def optionsMenu(self):
         self.optionWindow = optionWindow(self).exec_()
 
+    @pyqtSlot()
+    def instanceMenu(self):
+        self.instanceWindow = instanceWindow(self).exec_()
+
     def colorBackground(self):
         self.setAutoFillBackground(True)
         p = self.palette()
         p.setColor(self.backgroundRole(), Qt.darkGray)
         self.setPalette(p)
+
+    def createDropdowns(self):
+        if isinstance(self.instanceSelect, str):
+            self.instanceSelect = QComboBox(self)
+            self.guiMove.append([-255, -(9 + 22)])
+            self.instanceSelect.resize(166, 22)
+            self.guiElements.append(self.instanceSelect)
+            self.instanceSelect.activated[str].connect(self.setInstance)
+
+            for instance in listdir(config.MC_DIR + "/instances"):
+                self.instanceSelect.addItem(instance)
+        else:
+            self.instanceSelect.clear()
+            for instance in listdir(config.MC_DIR + "/instances"):
+                self.instanceSelect.addItem(instance)
+            item = self.instanceSelect.findText(currentInstance)
+            self.instanceSelect.setCurrentIndex(item)
 
     def createButtons(self):
         self.loginButton = QPushButton("Login", self)
@@ -89,6 +126,12 @@ class mainWindow(QWidget):
         self.optionButton.clicked.connect(self.optionsMenu)
         self.guiElements.append(self.optionButton)
 
+        self.modpackManageButton = QPushButton("Instances", self)
+        self.guiMove.append([-(11 + 70), -(10 + 22)])
+        self.modpackManageButton.resize(70, 22)
+        self.modpackManageButton.clicked.connect(self.instanceMenu)
+        self.guiElements.append(self.modpackManageButton)
+
     def createLogin(self):
         global launcherConfig
         self.loginBox = QLineEdit(self, text=launcherConfig["lastusedname"])
@@ -100,13 +143,12 @@ class mainWindow(QWidget):
         self.guiMove.append([-255, -(35 + 22)])
         self.passBox.resize(166, 22)
         self.guiElements.append(self.passBox)
-        self.passBox.setText("Coming soon!")
-        self.passBox.setEnabled(False)
+        self.passBox.setEchoMode(QLineEdit.Password)
 
     def createLogo(self):
         self.logo = QLabel(self)
         self.logo.resize(256, 49)
-        self.logo.setPixmap(self.logoImage.scaled(self.logo.size(), Qt.KeepAspectRatio))
+        self.logo.setPixmap(config.LOGO.scaled(self.logo.size(), Qt.KeepAspectRatio))
 
     def createTheInternet(self):
         self.theInternet = QWebEngineView(self)
@@ -129,12 +171,26 @@ class mainWindow(QWidget):
             for indexy in range(len(self.dirt[0])):
                 self.dirt[index][indexy].show()
                 self.dirt[index][indexy].resize(64, 64)
-                self.dirt[index][indexy].setPixmap(self.dirtImage)
+                self.dirt[index][indexy].setPixmap(config.BACKGROUND.scaled(self.dirt[0][0].size(), Qt.KeepAspectRatio))
                 self.dirt[index][indexy].move(64 * index, self.size().height() - 100 + (indexy * 64))
 
         self.logo.raise_()
 
     # Game ---------------------------------------------------------------------------------------
+
+    def setInstance(self, text):
+        global currentInstance
+        currentInstance = text
+        config.ICON = utils.loadImage("favicon.ico", currentInstance)
+        config.LOGO = utils.loadImage("logo.png", currentInstance)
+        config.BACKGROUND = utils.loadImage("background.png", currentInstance)
+        self.setWindowIcon(QIcon(config.ICON))
+        self.createImages()
+        self.logo.setPixmap(config.LOGO.scaled(self.logo.size(), Qt.KeepAspectRatio))
+        for index in range(len(self.guiElements)):
+            self.guiElements[index].raise_()
+        self.logo.raise_()
+
 
     def checkAlive(self, threadingEvent):
         global prc, checkAliveTimer, running
@@ -149,6 +205,7 @@ class mainWindow(QWidget):
                 self.loginButton.setEnabled(True)
                 self.loginBox.setEnabled(True)
                 self.optionButton.setEnabled(True)
+                self.passBox.setEnabled(True)
             except:
                 pass
             running = False
@@ -157,7 +214,7 @@ class mainWindow(QWidget):
             checkAliveTimer.start()
 
     def launch(self):
-        global prc, launcherConfig
+        global prc, launcherConfig, username, currentInstance
         try:
             prc.kill()
         except:
@@ -165,17 +222,16 @@ class mainWindow(QWidget):
         try:
             if self.loginBox.text() == "":
                 raise TypeError
-            elif not self.loginBox.text().isalnum():
+            elif not username.isalnum():
                 raise TypeError
-            prc = Popen(
-                'java {} -Xms{} -Xmx{} -cp "{}\\bin\\minecraft.jar;{}\\bin\\jinput.jar;{}\\bin\\lwjgl.jar;{}\\bin\\lwjgl_util.jar" -Djava.library.path="{}\\bin\\natives" net.minecraft.client.Minecraft {}'.format(
-                    launcherConfig["javaargs"], launcherConfig["minram"], launcherConfig["maxram"], config.MC_DIR,
-                    config.MC_DIR, config.MC_DIR, config.MC_DIR, config.MC_DIR, launcherConfig["lastusedname"]))
+            print("java " + launcherConfig["javaargs"] + " -Xms" + launcherConfig["minram"] + " -Xmx" + launcherConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + currentInstance + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/lwjgl_util.jar\" " + "-Duser.home=\"" + config.MC_DIR + "/instances/" + currentInstance + "\" -Dminecraft.applet.targetDirectory=\"" + config.MC_DIR + "/instances/" + currentInstance + "\" -Djava.library.path=\"" + config.MC_DIR + "/instances/" + currentInstance + "/bin/natives\" net.minecraft.client.Minecraft " + self.loginBox.text())
+            prc = Popen("java " + launcherConfig["javaargs"] + " -Xms" + launcherConfig["minram"] + " -Xmx" + launcherConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + currentInstance + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/lwjgl_util.jar\" " + "-Duser.home=\"" + config.MC_DIR + "/instances/" + currentInstance + "\" -Dminecraft.applet.targetDirectory=\"" + config.MC_DIR + "/instances/" + currentInstance + "\" -Djava.library.path=\"" + config.MC_DIR + "/instances/" + currentInstance + "/bin/natives\" net.minecraft.client.Minecraft " + self.loginBox.text())
             launcherConfig["lastusedname"] = self.loginBox.text()
             utils.saveSettings(launcherConfig)
-        except:
+        except Exception as e:
             self.error(
                 "Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.")
+            traceback.print_exc()
 
     def error(self, err):
         # noinspection PyCallByClass
@@ -192,19 +248,22 @@ class mainWindow(QWidget):
 
     def closeEvent(self, event):
         global checkAliveTimer
+        if exists(config.MC_DIR+"/tmp"):
+            shutil.rmtree(config.MC_DIR+"/tmp")
         checkAliveTimer.cancel()
+
 
 
 class optionWindow(QDialog):
     def __init__(self, parent=None):
+        global launcherConfig
         super().__init__(parent)
-        launcherConfig = utils.loadSettings(mainWindow)
+        launcherConfig = utils.loadSettings()
         screen_resolution = app.desktop().screenGeometry()
         self.title = config.NAME + " " + config.VER + " Options"
         self.setWindowIcon(QIcon(config.ICON))
         self.left = screen_resolution.width() / 2 - (480 / 2)
         self.top = screen_resolution.height() / 2 - (240 / 2)
-        self.logoImage = QPixmap(config.LOGO)
         self.initUI()
 
     def initUI(self):
@@ -253,15 +312,90 @@ class optionWindow(QDialog):
         utils.saveSettings(launcherConfig)
 
 
+class instanceWindow(QDialog):
+    widgets = []
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        launcherConfig = utils.loadSettings()
+        screen_resolution = app.desktop().screenGeometry()
+        self.title = config.NAME + " " + config.VER + " Instance Manager"
+        self.setWindowIcon(QIcon(config.ICON))
+        self.left = screen_resolution.width() / 2 - (480 / 2)
+        self.top = screen_resolution.height() / 2 - (240 / 2)
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, 480, 240)
+        self.setFixedSize(self.size())
+        #self.listInstances()
+        self.createButtons()
+
+    def listInstances(self):
+        try:
+            for widget in self.widgets:
+                widget.deleteLater()
+        except: pass
+
+        listBox = QVBoxLayout(self)
+        self.setLayout(listBox)
+
+        scroll = QScrollArea(self)
+        listBox.addWidget(scroll)
+        scroll.setWidgetResizable(True)
+        scrollContent = QWidget(scroll)
+
+        scrollLayout = QVBoxLayout(scrollContent)
+        scrollContent.setLayout(scrollLayout)
+        for item in items:
+            scrollLayout.addWidget(item)
+        scroll.setWidget(scrollContent)
+
+    def createButtons(self):
+        self.openDirButton = QPushButton("Open " + config.NAME + " Install Dir", self)
+        self.openDirButton.resize(70, 22)
+        self.openDirButton.move(20, 20)
+        self.openDirButton.clicked.connect(self.installModpack)
+
+    def installModpack(self):
+        utils.installModpack(utils.getModapackFS("D:\Downloads\LowMango Pack b1.7.3 (Feb 2019 Update).zip"))
+
+    def openDir(self):
+        path = config.MC_DIR
+        if platform.system() == "Windows":
+            startfile(path)
+        elif platform.system() == "Darwin":
+            subprocess.Popen(["open", path])
+        else:
+            subprocess.Popen(["xdg-open", path])
+
+    def closeEvent(self, event, *args, **kwargs):
+        global currentInstance, mainWin
+        if not exists(config.MC_DIR + "/instances/" + currentInstance):
+            try:
+                currentInstance = listdir(config.MC_DIR + "/instances")[0]
+            except:
+                currentInstance = ""
+
+        mainWindow.setInstance(mainWin, currentInstance)
+        mainWindow.createDropdowns(mainWin)
+
+
+try:
+    currentInstance = listdir(config.MC_DIR+"/instances")[0]
+except:
+    currentInstance = ""
+
+username = ""
 update = True
 prc = ""
 running = False
+
+
 threadingEvent = threading.Event()
 
 app = QApplication(sys.argv)
-config.ICON = utils.loadImage("favicon.ico")
-config.LOGO = utils.loadImage("logo.png")
-config.BACKGROUND = utils.loadImage("background.png")
 mainWin = mainWindow()
 
 sys.exit(app.exec_())

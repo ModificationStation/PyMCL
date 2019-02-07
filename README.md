@@ -9,10 +9,10 @@ This list is based off of the old beta launcher.
  - [x] Fixed tumblr page.
  - [x] Themable for modpacks/personal needs.
  - [x] Extended options. (supports custom java args and ram limits right now)
- - [ ] Instancing.
- - [ ] Modpack manager. (somewhat similar to the twitch launcher)
- - [ ] Fixed login server. (Offline only atm)
- - [ ]  Discord integration. (shows what modpack you are playing and on what mc version)
+ - [x] Instancing.
+ - [x] Modpack manager. (somewhat similar to the twitch launcher)
+ - [x] Fixed login. (still offline for now, but will fetch username from credentials)
+ - [ ] Discord integration. (shows what modpack you are playing and on what mc version)
  - [ ] Mod installer system similar to Nexus Mod Manager.
  - [ ] Stupidly lightweight.
 
@@ -27,6 +27,7 @@ Pip 3, PyQt5, PyInstaller, Requests and AppDirs. (`pip3 install pyqt5 appdirs py
 
 ##### Automated Compile:
 Run the batch/shell file for your OS.
+___Linux/macos script is untested___
 
 ##### Manual Compile:
  `pyinstaller -y -F -w -i favicon.ico --add-data "background.png":"." --add-data "favicon.ico":"." --add-data "logo.png":"." launcher.py`.
@@ -36,4 +37,4 @@ Run the batch/shell file for your OS.
    instead of a colon (`:`) in the `--add-data` arguments.
  - The compiled executable will be put in the dist folder when it is done.
  - To have a console for the launcher, remove the `-w` in the compile arguments when compiling.
- - The final file is *huge*. I recommend just using `python3 launcher.py` for personal use.
+ - The final file is pretty big. (~80mb)
