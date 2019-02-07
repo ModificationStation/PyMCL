@@ -17,7 +17,7 @@ echo Adding dependencies.
 pip install pyqt5 requests appdirs
 
 echo Using pyinstaller.
-pyinstaller -y -F -w -i "favicon.ico" --add-data "background.png":"." --add-data "logo.png":"." launcher.py
+pyinstaller -y -F -w -i "favicon.ico" --add-data "background.png":"." --add-data "logo.png":"." --add-data "favicon.ico":"." launcher.py
 
 echo Complete!
 read -p "Press enter to continue..."

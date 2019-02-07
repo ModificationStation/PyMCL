@@ -10,6 +10,8 @@ import io
 import urllib
 from distutils.dir_util import copy_tree, remove_tree
 
+from PyQt5.QtWidgets import QMessageBox
+
 
 def resourcePath(relative_path):
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
@@ -99,12 +101,15 @@ def getModpackURL(modpackURL):
 
 
 def getModapackFS(modpackDir):
-    if not os.path.exists(config.MC_DIR+"/modpackzips/"):
-        os.makedirs(config.MC_DIR+"/modpackzips/")
-    modpackName = os.path.splitext(os.path.basename(modpackDir))[0]
-    if os.path.exists(config.MC_DIR + "/modpackzips/" + modpackName + ".zip"):
-        os.remove(config.MC_DIR + "/modpackzips/" + modpackName + ".zip")
-    shutil.copy(modpackDir, config.MC_DIR + "/modpackzips/"+modpackName + ".zip")
+    try:
+        if not os.path.exists(config.MC_DIR+"/modpackzips/"):
+            os.makedirs(config.MC_DIR+"/modpackzips/")
+        modpackName = os.path.splitext(os.path.basename(modpackDir))[0]
+        if os.path.exists(config.MC_DIR + "/modpackzips/" + modpackName + ".zip"):
+            os.remove(config.MC_DIR + "/modpackzips/" + modpackName + ".zip")
+        shutil.copy(modpackDir, config.MC_DIR + "/modpackzips/"+modpackName + ".zip")
+    except:
+        modpackName = "Error"
     return modpackName
 
 
@@ -130,18 +135,18 @@ def installModpack(modpackName):
         if not os.path.exists(config.MC_DIR + "/instances/" + modpackJsonName):
             os.makedirs(config.MC_DIR + "/instances/" + modpackJsonName)
 
-        copy_tree(config.MC_DIR + "/tmp/" + modpackName + "/.minecraft", config.MC_DIR + "/instances/" + modpackJsonName)
+        copy_tree(config.MC_DIR + "/tmp/" + modpackName, config.MC_DIR + "/instances/" + modpackJsonName)
         print("Finding Readmes")
-        files = [f for f in os.listdir(config.MC_DIR + "/tmp/" + modpackName) if os.path.isfile(config.MC_DIR + "/tmp/" + modpackName + "/" + f)]
+        files = [f for f in os.listdir(config.MC_DIR + "/tmp/" + modpackName) if os.path.isfile(config.MC_DIR + "/instances/" + modpackJsonName + "/" + f)]
         try:
             for file in files:
                 if (file.lower().__contains__("readme") or file.lower().__contains__("read me") or file.lower().__contains__("contains") or file.lower().__contains__("included")) and file.lower().endswith(".txt"):
                     if sys.platform.startswith('darwin'):
-                        subprocess.call(('open', config.MC_DIR + "/tmp/" + modpackName + "/" + file))
+                        subprocess.call(('open', config.MC_DIR + "/instances/" + modpackJsonName + "/" + file))
                     elif os.name == 'nt':
-                        os.startfile(config.MC_DIR + "/tmp/" + modpackName + "/" + file)
+                        os.startfile(config.MC_DIR + "/instances/" + modpackJsonName + "/" + file)
                     elif os.name == 'posix':
-                        subprocess.call(('xdg-open', config.MC_DIR + "/tmp/" + modpackName + "/" + file))
+                        subprocess.call(('xdg-open', config.MC_DIR + "/instances/" + modpackJsonName + "/" + file))
         except Exception as e:
             print("There was a problem opening readmes.")
             print(e)
@@ -149,3 +154,10 @@ def installModpack(modpackName):
     except Exception as e:
         print("Modpack install failed. Try installing again.")
         print(e)
+
+
+def rmModpack(modpackName, widget, parent):
+    confirm = QMessageBox.question(parent, "Are you sure?", "Are you sure?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+    if confirm == QMessageBox.Yes:
+        remove_tree(config.MC_DIR + "/instances/" + modpackName)
+        widget.deleteLater()

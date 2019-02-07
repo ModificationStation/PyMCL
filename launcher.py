@@ -3,9 +3,9 @@ import utils
 from json import loads, dumps
 from math import ceil
 from os.path import abspath, exists
-from os import makedirs, listdir, startfile, chdir
+from os import makedirs, listdir, startfile, chdir, environ
 from requests import get as reqGet
-from subprocess import Popen
+import subprocess
 import sys
 import threading
 import shutil
@@ -16,7 +16,7 @@ import shlex
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import pyqtSlot, Qt, QUrl
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QLineEdit, QMessageBox, QDialog, QTabWidget, QComboBox, QScrollArea
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QLineEdit, QMessageBox, QDialog, QTabWidget, QComboBox, QScrollArea, QVBoxLayout
 
 class mainWindow(QWidget):
     guiElements = []
@@ -224,13 +224,19 @@ class mainWindow(QWidget):
                 raise TypeError
             elif not username.isalnum():
                 raise TypeError
-            print("java " + launcherConfig["javaargs"] + " -Xms" + launcherConfig["minram"] + " -Xmx" + launcherConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + currentInstance + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/lwjgl_util.jar\" " + "-Duser.home=\"" + config.MC_DIR + "/instances/" + currentInstance + "\" -Dminecraft.applet.targetDirectory=\"" + config.MC_DIR + "/instances/" + currentInstance + "\" -Djava.library.path=\"" + config.MC_DIR + "/instances/" + currentInstance + "/bin/natives\" net.minecraft.client.Minecraft " + self.loginBox.text())
-            prc = Popen("java " + launcherConfig["javaargs"] + " -Xms" + launcherConfig["minram"] + " -Xmx" + launcherConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + currentInstance + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/bin/lwjgl_util.jar\" " + "-Duser.home=\"" + config.MC_DIR + "/instances/" + currentInstance + "\" -Dminecraft.applet.targetDirectory=\"" + config.MC_DIR + "/instances/" + currentInstance + "\" -Djava.library.path=\"" + config.MC_DIR + "/instances/" + currentInstance + "/bin/natives\" net.minecraft.client.Minecraft " + self.loginBox.text())
+            # This better damn well work.
+            print(platform.platform())
+            if platform.platform().startswith("Windows"):
+                environ["APPDATA"] = config.MC_DIR + "/instances/" + currentInstance
+                prc = subprocess.Popen("java " + launcherConfig["javaargs"] + " -Xms" + launcherConfig["minram"] + " -Xmx" + launcherConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/lwjgl_util.jar\" " + "-Djava.library.path=\"" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/natives\" net.minecraft.client.Minecraft " + self.loginBox.text(), env=dict(environ, APPDATA=config.MC_DIR + "/instances/" + currentInstance))
+            elif platform.platform().startswith("Darwin"):
+                prc = subprocess.Popen("java " + launcherConfig["javaargs"] + " -Xms" + launcherConfig["minram"] + " -Xmx" + launcherConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/lwjgl_util.jar\" " + "-Djava.library.path=\"" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/natives\" net.minecraft.client.Minecraft " + self.loginBox.text(), env=dict(environ, HOME=config.MC_DIR + "/instances/" + currentInstance))
+            else:
+                prc = subprocess.Popen("java " + launcherConfig["javaargs"] + " -Xms" + launcherConfig["minram"] + " -Xmx" + launcherConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/lwjgl_util.jar\" " + "-Duser.home=\"" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "\" -Dminecraft.applet.targetDirectory=\"" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "\" -Djava.library.path=\"" + config.MC_DIR + "/instances/" + currentInstance + "/.minecraft" + "/bin/natives\" net.minecraft.client.Minecraft " + self.loginBox.text())
             launcherConfig["lastusedname"] = self.loginBox.text()
             utils.saveSettings(launcherConfig)
         except Exception as e:
-            self.error(
-                "Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.")
+            self.error("Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.")
             traceback.print_exc()
 
     def error(self, err):
@@ -329,37 +335,49 @@ class instanceWindow(QDialog):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, 480, 240)
         self.setFixedSize(self.size())
-        #self.listInstances()
+        self.listInstances()
         self.createButtons()
+        self.createInput()
 
     def listInstances(self):
-        try:
-            for widget in self.widgets:
+        for widget in self.widgets:
+            try:
                 widget.deleteLater()
-        except: pass
-
-        listBox = QVBoxLayout(self)
-        self.setLayout(listBox)
-
+            except:pass
+        self.widgets=[]
+        box = QVBoxLayout(self)
+        self.setLayout(box)
         scroll = QScrollArea(self)
-        listBox.addWidget(scroll)
+        box.addWidget(scroll)
         scroll.setWidgetResizable(True)
         scrollContent = QWidget(scroll)
-
         scrollLayout = QVBoxLayout(scrollContent)
         scrollContent.setLayout(scrollLayout)
-        for item in items:
-            scrollLayout.addWidget(item)
+        for instance in listdir(config.MC_DIR+"/instances"):
+            widget = QPushButton(self, text="Delete " + instance + ".")
+            widget.clicked.connect(lambda: utils.rmModpack(instance, widget, self))
+            scrollLayout.addWidget(widget)
+            self.widgets.append(widget)
         scroll.setWidget(scrollContent)
 
     def createButtons(self):
         self.openDirButton = QPushButton("Open " + config.NAME + " Install Dir", self)
-        self.openDirButton.resize(70, 22)
-        self.openDirButton.move(20, 20)
-        self.openDirButton.clicked.connect(self.installModpack)
+        self.openDirButton.resize(150, 22)
+        self.openDirButton.move(self.width()-155, 5)
+        self.openDirButton.clicked.connect(self.openDir)
+
+        self.installModpackButton = QPushButton("Install Local Modpack", self)
+        self.installModpackButton.resize(150, 22)
+        self.installModpackButton.move(5, 5)
+        self.installModpackButton.clicked.connect(self.installModpack)
+
+    def createInput(self):
+        self.modpackZipDir = QLineEdit(self)
+        self.modpackZipDir.resize(170, 22)
+        self.modpackZipDir.move(155, 5)
 
     def installModpack(self):
-        utils.installModpack(utils.getModapackFS("D:\Downloads\LowMango Pack b1.7.3 (Feb 2019 Update).zip"))
+        utils.installModpack(utils.getModapackFS(self.modpackZipDir.text()))
 
     def openDir(self):
         path = config.MC_DIR
