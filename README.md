@@ -4,7 +4,8 @@ PyMCL is a multimc-like (functionality wise) launcher for legacy minecraft versi
 It looks like the old beta launcher, but has the same features as many modern launchers.
 
 ## Features in Descending Order (priority)
-This list is based off of the old beta launcher.
+This list is based off of the old beta launcher.  
+[Changelog](https://github.com/ModificationStation/PyMCL/blob/master/changelog.md)
 
  - [x] Fixed tumblr page.
  - [x] Themable for modpacks/personal needs.
@@ -26,7 +27,7 @@ Pip 3, PyQt5, PyInstaller, Requests and AppDirs. (`pip3 install pyqt5 appdirs py
 
 
 ##### Automated Compile:
-Run the batch/shell file for your OS.
+Run the batch/shell file for your OS.  
 ___Linux/macos script is untested___
 
 ##### Manual Compile:
