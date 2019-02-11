@@ -13,10 +13,10 @@ import platform
 import traceback
 import shlex
 
-from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import pyqtSlot, Qt, QUrl
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QLineEdit, QMessageBox, QDialog, QTabWidget, QComboBox, QScrollArea, QVBoxLayout
+
 
 class mainWindow(QWidget):
     guiElements = []
@@ -151,8 +151,10 @@ class mainWindow(QWidget):
         self.logo.setPixmap(config.LOGO.scaled(self.logo.size(), Qt.KeepAspectRatio))
 
     def createTheInternet(self):
-        self.theInternet = QWebEngineView(self)
-        self.theInternet.load(QUrl("https://mcupdate.tumblr.com"))
+        self.theInternet = QLabel(self)
+        response = reqGet("https://mcupdate.tumblr.com")
+        self.theInternet.setText(str(response.content))
+        self.theInternet.setTextFormat(Qt.RichText)
         self.theInternet.show()
 
     def createImages(self):
@@ -190,7 +192,6 @@ class mainWindow(QWidget):
         for index in range(len(self.guiElements)):
             self.guiElements[index].raise_()
         self.logo.raise_()
-
 
     def checkAlive(self, threadingEvent):
         global prc, checkAliveTimer, running
@@ -257,7 +258,6 @@ class mainWindow(QWidget):
         if exists(config.MC_DIR+"/tmp"):
             shutil.rmtree(config.MC_DIR+"/tmp")
         checkAliveTimer.cancel()
-
 
 
 class optionWindow(QDialog):
