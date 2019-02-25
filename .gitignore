@@ -16,3 +16,5 @@ launcher.spec
 .idea/
 
 venv/
+
+lib/

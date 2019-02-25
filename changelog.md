@@ -15,16 +15,29 @@ Prep for a0.4.
 ### a0.4
 
 ~ Themes are now per instance.  
-~ Install dir is now %appdata%/.PyMCL (or your OSes alternative)  
+~ Install dir is now %appdata%/.PyMCL (or your OSes alternative to appdata)  
 \+ Added instance selection.  
 \+ Added a basic instance manager.  
 \+ Added automated installing of modpacks from local filesystem.  
 - Any text file containing `readme` or `included` will be opened.
 - See the [Wiki](https://github.com/ModificationStation/PyMCL/wiki) for more info.
 
-### Upcoming a0.5
+### a0.5
 
-~ Better instance manager.  
 ~ Per instance java settings.  
+~ Better instance manager!
 ~ Optimisation and crash fixes.  
-\+ Discord rich presence.
+~ Rewrite of some functions and general optimisation.  
+~ Smaller file size! Down to 18mb!  
+~ Fixed unix compile script!
+\- Can no longer display remote (internet) content.  
+\+ The blog is now themable with a html4 file!  
+\+ Commented code!  
+\+ Discord rich presence.  
+
+### Upcoming a0.6+
+
+~ Yet another rewrite. I have learned alot about how pyqt5 works and I cant bear to look at my old code.
+~ Launching minecraft via [launchwrapper](https://github.com/Mojang/LegacyLauncher) to allow for mixins.  
+~ Online repository of mods, modpacks and themes that can be 1-click-installed.
+~ Better theming system.
