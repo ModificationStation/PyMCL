@@ -48,14 +48,14 @@ def getFile(relative_path, instanceName=""):
 # If the json is malformed, then it backs it up and remakes it.
 def loadSettings(self):
     if not os.path.exists(config.MC_DIR + "/launcher_config.json"):
-        saveSettings(config.DEFAULT_LAUNCHER_CONFIG)
+        saveSettings(json.loads(config.DEFAULT_LAUNCHER_CONFIG))
     try:
         with open(config.MC_DIR + "/launcher_config.json", "r") as file:
             launcherConfig = json.loads(file.read())
     except:
-        self.error("Couldn't read instance config. Renamed to \"instance_config.json.bak\"")
-        shutil.move(config.MC_DIR + "/launcher_config.json", config.MC_DIR + "/launcher_config.bak")
-        saveSettings(config.DEFAULT_LAUNCHER_CONFIG)
+        print("Couldn't read launcher config. Renamed to \"instance_config.json.bak\"")
+        shutil.move(config.MC_DIR + "/launcher_config.json", config.MC_DIR + "/launcher_config.json.bak")
+        saveSettings(config.DEFAULT_INSTANCE_CONFIG)
         with open(config.MC_DIR + "/launcher_config.json", "r") as file:
             launcherConfig = json.loads(file.read())
 

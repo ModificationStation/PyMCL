@@ -54,7 +54,7 @@ class mainWindow(QWidget):
     # This sets up all the crap you see.
     def initUI(self):
         global threadingEvent, update
-        update = utils.checkOnline()  # Unused. Gonna be used for update checking and the modpack repo then that is made.
+        update = utils.checkOnline()  # Unused. Gonna be used for update checking and the modpack repo when that is made.
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, 854, 480)
         self.colorBackground()
