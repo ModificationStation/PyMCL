@@ -15,7 +15,7 @@ chmod a+x venv/bin/activate
 source venv/bin/activate
 
 echo Adding dependencies.
-pip install pyqt5 requests appdirs pyinstaller
+pip install pyqt5 requests appdirs pyinstaller pypresence
 
 echo Using pyinstaller.
 pyinstaller -y -F -w -i "favicon.ico" --add-data "background.png":"." --add-data "logo.png":"." --add-data "favicon.ico":"." launcher.py

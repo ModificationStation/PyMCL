@@ -1,13 +1,8 @@
 echo Activating venv.
-export $worked=false
 
-source venv/bin/activate && export $worked=true
+source venv/bin/activate
 
-if [$worked=true]
-then
-	echo Starting launcher.
-	python launcher.py
-else
-	echo Failed to activate virtualenv.
+echo Starting launcher.
+python launcher.py
 
 read -p "Press enter to continue..."
