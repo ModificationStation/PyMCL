@@ -18,3 +18,5 @@ launcher.spec
 venv/
 
 lib/
+
+\.PyMCL/
