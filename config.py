@@ -1,6 +1,7 @@
-import appdirs
+import os
+import platform
 
-# DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING
+# DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING.
 
 NAME = "PyMCL"
 ICON = ""
@@ -25,7 +26,15 @@ DEFAULT_INSTANCE_CONFIG = """
 }
 """
 
-# Debug purposes. If you change this, all users complaining about crashes, etc, becomes your problem.
-VER = "v0.5 Alpha"
+VER = "v0.6 Alpha Pre 1"
 
-MC_DIR = appdirs.user_data_dir(".PyMCL", "", roaming=True)
+
+if platform.platform().startswith("Windows"):
+    MC_DIR = os.getenv("APPDATA") + "/.PyMCL"
+    OS = "windows"
+elif platform.platform().startswith("Darwin"):
+    MC_DIR = os.path.expanduser("~") + "/Library/Application Support/PyMCL"
+    OS = "osx"
+else:
+    MC_DIR = os.path.expanduser("~") + "/.PyMCL"
+    OS = "linux"

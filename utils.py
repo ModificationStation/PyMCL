@@ -8,12 +8,14 @@ import os
 import io
 import urllib
 import subprocess
+import hashlib
 import traceback
+import webbrowser
 from distutils.dir_util import copy_tree, remove_tree
 
 from PyQt5.QtCore import QThread, pyqtSignal, QObject
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QMessageBox, QLabel
+from PyQt5.QtWidgets import QMessageBox
 
 # The shit im actually somewhat good at.
 
@@ -94,7 +96,7 @@ def saveInstanceSettings(conf, currentInstance):
             file.write(json.dumps(conf, indent=4, sort_keys=True))
 
 
-# Im not even sure this is the way you are meant to do this, but im pretty sure it works.
+# Im not even sure this is the way you are meant to do this, but im pretty sure it works. Correct me if im wrong.
 # This retrieves the name and session from the provided details.
 def login(username, password):
     data = {
@@ -140,46 +142,70 @@ def areYouThere(path):
 
 # Fetches mdpack from url and shoves it into modpackzips. Returns Error if something went wrong.
 class getModpackURL(QThread):
-    modpackURL = None
-    win = None
     installModpack = pyqtSignal(QObject, str)
     starting = pyqtSignal()
 
+    def __init__(self, win=None, modpackURL=None):
+        super().__init__()
+        self.win = win
+        self.modpackURL = modpackURL
+
     def run(self):
         self.starting.emit()
+        print("getting modpack from url")
         if not self.modpackURL or not self.win:
             modpackName = "Error"
         else:
             try:
-                if not os.path.exists(config.MC_DIR+"/modpackzips/"):
-                    os.makedirs(config.MC_DIR+"/modpackzips/")
+                areYouThere(config.MC_DIR+"/modpackzips/")
+                areYouThere(config.MC_DIR+"/tmp/")
                 modpackName = urllib.parse.unquote_plus(self.modpackURL.rsplit('/', 1)[-1].split(".")[0])
                 if os.path.exists(config.MC_DIR + "/modpackzips/" + modpackName + ".zip"):
-                    self.win.updateStatus("Using cached file.")
+                    self.win.updateIStatus("Using cached file.")
                 else:
-                    self.win.updateStatus("Attempting download...")
+                    self.win.updateIStatus("Attempting download...")
                     response = requests.get(self.modpackURL, stream=True)
-                    with io.open(config.MC_DIR + "/modpackzips/" + modpackName + ".zip", 'wb') as fd:
+                    total_length = response.headers.get("content-length")
+                    if response.content is None:
+                        raise ConnectionError
+
+                    dl = 0
+                    total_length = int(total_length)
+                    with io.open(config.MC_DIR + "/tmp/" + modpackName + ".zip", 'wb') as fd:
+                        oldDone = 0
                         for chunk in response.iter_content(chunk_size=4096):
+                            dl += len(chunk)
                             fd.write(chunk)
+                            done = int(50 * dl / total_length)
+                            if done != oldDone:
+                                self.win.updateIStatus("[%s%s]" % ('=' * done, ' ' * (50-done)))
+                                oldDone = done
+                    shutil.move(config.MC_DIR + "/tmp/" + modpackName + ".zip", config.MC_DIR + "/modpackzips/")
             except:
                 modpackName = "Error"
         self.installModpack.emit(self.win, modpackName)
 
+    def stop(self):
+        self.threadactive = False
+        self.wait()
+
 
 # Pretty simple, tries to copy modpack to /modpackzips/, returning error if something went wrong.
 class getModpackFS(QThread):
-    modpackDir = None
-    win = None
     installModpack = pyqtSignal(QObject, str)
     starting = pyqtSignal()
+
+    def __init__(self, win=None, modpackDir=None):
+        super().__init__()
+        self.win = win
+        self.modpackName = modpackDir
 
     def run(self):
         self.starting.emit()
         if not self.modpackDir or not self.win:
             modpackName = "Error"
         else:
-            self.win.updateStatus("Retrieving modpack from path...")
+            self.win.updateIStatus("Retrieving modpack from path...")
             if not os.path.exists(config.MC_DIR+"/modpackzips/"):
                 os.makedirs(config.MC_DIR+"/modpackzips/")
             try:
@@ -194,41 +220,90 @@ class getModpackFS(QThread):
                 modpackName = "Error"
         self.installModpack.emit(self.win, modpackName)
 
+    def stop(self):
+        self.threadactive = False
+        self.wait()
+
+
+class getModpackRepo(QThread):
+    result = pyqtSignal(bool, dict)
+
+    def run(self):
+        print("Trying")
+        try:
+            with requests.get("https://modpacks.pymcl.net/api/getmodpacks.php") as response:
+                self.result.emit(True, json.loads(response.content))
+                print("Worked")
+        except:
+            self.result.emit(False, {})
+            print("Failed")
+
+    def stop(self):
+        self.threadactive = False
+        self.wait()
+
+
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+
+def openModpackInBrowser(modpackID=None, url=None):
+    if not url:
+        url = "https://modpacks.pymcl.net/showmodpack.php?modpack=" + modpackID
+    webbrowser.open(url)
+
 
 # Ugh, i have to comment this? fine.
 class installModpack(QThread):
-    modpackName = None
-    win = None
     done = pyqtSignal()
     starting = pyqtSignal()
 
+    def __init__(self, win=None, modpackName=None):
+        super().__init__()
+        self.win = win
+        self.modpackName = modpackName
+
     def run(self):
+        print("starting")
         self.starting.emit()
+        print("Installing modpack")
         try:
-            if self.modpackName == "Error":
+            if self.modpackName == "Error" or self.modpackName is None:
                 raise IOError("Modpack does not exist in directory?")
             if not os.path.exists(config.MC_DIR + "/tmp/" + self.modpackName):
                 os.makedirs(config.MC_DIR + "/tmp/" + self.modpackName)
 
             # Extracts the zip file to the temp dir.
-                self.win.updateStatus("Extracting modpack...")
+                self.win.updateIStatus("Extracting modpack...")
             with zipfile.ZipFile(config.MC_DIR + "/modpackzips/" + self.modpackName + ".zip", "r") as zip:
                 zip.extractall(config.MC_DIR + "/tmp/" + self.modpackName)
 
             # Get the modpack's name. if it cant find one, then it uses the name of the zip.
-            self.win.updateStatus("Installing modpack...")
+            self.win.updateIStatus("Installing modpack...")
             try:
                 with open(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/modpack.json", "r") as file:
                     modpackJson = json.loads(file.read())
                     modpackJsonName = modpackJson["modpackname"]
+                    try:
+                        mcVer = modpackJson["mcver"]
+                    except:
+                        mcVer = None
             except:
-                print("No modpack name found. Using zip file name. Get the modpack author to create a \"modpack.json\" file in his/her modpack.")
+                self.win.updateIStatus("No modpack name found. Using zip file name. Get the modpack author to create a \"modpack.json\" file in his/her modpack.")
                 modpackJsonName = self.modpackName
+                mcVer = None
+
+            if mcVer:
+                self.makeModpack(mcVer)
 
             areYouThere(config.MC_DIR + "/instances/" + modpackJsonName)
 
             copy_tree(config.MC_DIR + "/tmp/" + self.modpackName, config.MC_DIR + "/instances/" + modpackJsonName)
-            self.win.updateStatus("Finding Readmes")
+            self.win.updateIStatus("Finding Readmes")
 
             # Finds all files that start with readme, read me, contains, included, mod list, modlist and credits.
             files = [f for f in os.listdir(config.MC_DIR + "/instances/" + modpackJsonName) if os.path.isfile(config.MC_DIR + "/instances/" + modpackJsonName + "/" + f)]
@@ -247,30 +322,100 @@ class installModpack(QThread):
                             subprocess.call(('xdg-open', config.MC_DIR + "/instances/" + modpackJsonName + "/" + file))
 
             # In case shit went wrong.
-            except:
+            except Exception as e:
+                traceback.print_exc()
                 print("There was a problem opening readmes.")
 
             # Gotta stay clean!
-            self.win.updateStatus("Deleting temp files...")
+            self.win.updateIStatus("Deleting temp files...")
             remove_tree(config.MC_DIR + "/tmp/" + self.modpackName)
-            self.win.updateStatus("Modpack installed!")
+            self.win.updateStatus("Modpack installed!", color="green")
 
         # And in case the zip didnt exist in the first place.
-        except:
+        except Exception as e:
             self.win.updateStatus("Modpack install failed. Make sure the URL/filename is correct.", color="red")
+            traceback.print_exc()
         self.done.emit()
 
+    def makeModpack(self, mcVer):
 
-class status(QLabel):
-    changed = pyqtSignal()
+        print("getting versions")
 
-    def setLabelText(self, p_str):
-        self.setText(p_str)
-        self.changed.emit()
+        with requests.get("https://files.pymcl.net/client/versions.json") as response:
+            print(response.content)
+            versionID = json.loads(response.content)[mcVer]
+
+        print("downloading mc")
+
+        self.win.updateIStatus("Attempting version download...")
+        response = requests.get("https://launcher.mojang.com/v1/objects/" + versionID + "/client.jar", stream=True)
+        total_length = response.headers.get("content-length")
+        if response.content is None:
+            raise ConnectionError("Version doesnt exist.")
+
+        print("started connection")
+
+        dl = 0
+        total_length = int(total_length)
+        with io.open(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/vanillamc.jar", 'wb') as fd:
+            oldDone = 0
+            for chunk in response.iter_content(chunk_size=4096):
+                dl += len(chunk)
+                fd.write(chunk)
+                done = int(50 * dl / total_length)
+                if done != oldDone:
+                    self.win.updateIStatus("[%s%s]" % ('=' * done, ' ' * (50 - done)))
+                    oldDone = done
+
+        print("downloaded.\nextracting vanilla jar")
+
+        shutil.unpack_archive(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/vanillamc.jar", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft", "zip")
+
+        print("extracted.\nextracting modpack jar and merging jars")
+
+        shutil.unpack_archive(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft.jar", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft", "zip")
+
+        print("extracted.\narchiving")
+
+        shutil.make_archive(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft", "zip", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft")
+
+        os.remove(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft.jar")
+        os.rename(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft.zip", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft.jar")
+
+        print("archived.\nDownloading lwjgl")
+
+        print("downloading mc")
+
+        self.win.updateIStatus("Attempting lwjgl download...")
+        response = requests.get("https://files.pymcl.net/client/lwjgl/lwjgl." + config.OS + ".zip", stream=True)
+        total_length = response.headers.get("content-length")
+
+        print("started connection")
+
+        dl = 0
+        total_length = int(total_length)
+        with io.open(config.MC_DIR + "/tmp/lwjgl.zip", 'wb') as fd:
+            oldDone = 0
+            for chunk in response.iter_content(chunk_size=4096):
+                dl += len(chunk)
+                fd.write(chunk)
+                done = int(50 * dl / total_length)
+                if done != oldDone:
+                    self.win.updateIStatus("[%s%s]" % ('=' * done, ' ' * (50 - done)))
+                    self.wait(300)
+                    oldDone = done
+
+        shutil.unpack_archive(config.MC_DIR + "/tmp/lwjgl.zip", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin")
+
+        shutil.rmtree(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft")
+
+    def stop(self):
+        self.threadactive = False
+        self.wait()
 
 
 # Simply deletes a given instance.
-def rmInstance(instanceName, widget, self):
+def rmInstance(instanceName, self):
     confirm = QMessageBox.question(self, "Are you sure?", "Are you sure you want to delete " + instanceName + "?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
     self.updateStatus("Deleting instance \"" + instanceName + "\"...")
     if confirm == QMessageBox.Yes:
@@ -283,8 +428,8 @@ def rmInstance(instanceName, widget, self):
 
 
 # Deletes given modpack zip. Prompts if attached to a window. Deletes the widget if attached to one.
-def rmModpack(zipName, widget="", self=""):
-    if isinstance(self, str):
+def rmModpack(zipName, self=None):
+    if not self:
         confirm = QMessageBox.Yes
     else:
         confirm = QMessageBox.question(self, "Are you sure?", "Are you sure you want to delete " + zipName + "?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
