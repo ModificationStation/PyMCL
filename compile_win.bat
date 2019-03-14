@@ -12,4 +12,4 @@ echo Creating venv.
 %pythonver% -m venv venv
 
 echo Activating venv.
-venv\Scripts\activate & echo Adding dependencies. & pip install pyqt5 requests appdirs pypresence & echo Using pyinstaller. & pyinstaller -y -F -i "favicon.ico" --add-data "background.png";"." --add-data "logo.png";"." --add-data "favicon.ico";"." --add-data "blogbackground.png";"." --add-data "blog.html";"." --hidden-import pypresence launcher.py & echo Complete! & PAUSE
+venv\Scripts\activate && echo Adding dependencies. && pip install pyqt5 requests appdirs pypresence && echo Using pyinstaller. && pyinstaller -y -F -i "favicon.ico" --add-data "background.png";"." --add-data "logo.png";"." --add-data "favicon.ico";"." --add-data "blogbackground.png";"." --add-data "blog.html";"." --add-data "refresh.png";"." --hidden-import pypresence launcher.py && echo Complete! & PAUSE

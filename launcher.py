@@ -12,10 +12,9 @@ import pypresence
 import functools
 import urllib
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtWidgets import QApplication, QWidget, QTextEdit, QPushButton, QLabel, QLineEdit, QMessageBox, QDialog, \
-    QComboBox, QScrollArea, QVBoxLayout, QFileDialog, QTabWidget, QGroupBox
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 
 class mainWindow(QWidget):
@@ -347,7 +346,6 @@ class optionWindow(QDialog):
 
     # Same drill. Does visible things.
     def initUI(self):
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, 480, 240)
         self.setFixedSize(self.size())
@@ -408,7 +406,6 @@ class instanceWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.progressWin = installWindow(self)
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         self.getModpackRepo.result.connect(self.updateRepo)
         optionWindow.launcherConfig = utils.loadSettings(self)
         screen_resolution = app.desktop().screenGeometry()
@@ -686,7 +683,6 @@ class installWindow(QDialog):
     # Same drill. Does background things.
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         screen_resolution = app.desktop().screenGeometry()
         self.title = config.NAME + " " + config.VER + " Modpack Export Wizard"
         self.setWindowIcon(QIcon(config.ICON))
@@ -728,8 +724,6 @@ class exportWindow(QDialog):
     # Same drill. Does background things.
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowFlag(Qt.WindowCloseButtonHint, False)
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         screen_resolution = app.desktop().screenGeometry()
         self.title = config.NAME + " " + config.VER + " Modpack Installer"
         self.setWindowIcon(QIcon(config.ICON))
