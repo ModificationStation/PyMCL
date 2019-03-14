@@ -36,13 +36,17 @@ Prep for a0.4.
 \+ Commented code!  
 \+ Discord rich presence.  
 
-### Upcoming a0.6-pre1
-Comes out on Sunday or Monday.  
+### a0.6-pre1
+The beginning of something awesome.
 
+~ Fixed a crash related to looking in the wrong folder on startup.  
+~ Hopefully fixed random crashes after modpack installation.  
 ~ Partial rewrite of some functions to support threading. (pymcl is now multithreaded! woo!)  
+~ Now uses "%appdata%/.PyMCL" on windows, "~/Library/Application Support/PyMCL" on OSX and "~/.PyMCL" on anything else.  
 \+ PyMCL is now portable! Create a file named "stay.here" in the same folder pymcl.exe is located to set it to portable mode.  
-\+ Online repository of modpacks that can be 1-click-installed.  
-\+ Automatic installation of instances. Will only initially support b1.7.3 though.  
+\+ Online repository of modpacks that can be 1-click-installed. Only one modpack available at the moment.  
+\+ Automatic creation of instances from partial jars. Will only initially support b1.7.3 though.  
+\- Python library "appdirs" no longer used. Shaves about 10kb off the file size. /shrug  
 
 ### Upcoming a0.6-pre2
 ETA unknown. Likely about 1-2 weeks after pre-1.
@@ -52,6 +56,7 @@ ETA unknown. Likely about 1-2 weeks after pre-1.
 \+ Automatic "dumb" mod installing. (just copies contents to mc.jar)  
 \+ Revamped instance manager.  
 \+ The launcher will have a working "export modpack" button in the instance manager.  
+\+ A "create instance" button for creating vanilla instances.
 
 ### Upcoming a0.6
 Woo!!!11 Automate EVERYTHING!  
