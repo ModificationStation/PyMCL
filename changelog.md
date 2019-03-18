@@ -25,7 +25,7 @@ Fixed a couple of crashes and bugs.
 ### a0.3
 
 Prep for a0.4.  
-~ Minor code rework in prep for 0.4.
+~ Minor code rework in prep for 0.4.  
 ~ Config.py layout changed.
 
 ### a0.4
@@ -57,7 +57,7 @@ The beginning of something awesome.
 ~ Fixed a crash related to looking in the wrong folder on startup.  
 ~ Hopefully fixed random crashes after modpack installation.  
 ~ Partial rewrite of some functions to support threading. (pymcl is now multithreaded! woo!)  
-~ Now uses "%appdata%/.PyMCL" on windows, "~/Library/Application Support/PyMCL" on OSX and "~/.PyMCL" on anything else.  
+~ Now uses "%appdata%/.PyMCL" on windows, "\~/Library/Application Support/PyMCL" on OSX and "\~/.PyMCL" on anything else.  
 \+ PyMCL is now portable! Create a file named "stay.here" in the same folder pymcl.exe is located to set it to portable mode.  
 \#\+\+ Online repository of modpacks that can be 1-click-installed. Only one modpack available at the moment.  
 \+ Automatic creation of instances from partial jars. Will only initially support b1.7.3 though.  
@@ -86,9 +86,9 @@ Woo!!!11 Automate EVERYTHING!
 
 ### Upcoming b1.0+
 
-~ UI overhaul. Some of the UI isnt fit for use anymore.
+~ UI overhaul. Some of the UI isnt fit for use anymore.  
 ~ Yet another rewrite. I have learned a lot about how pyqt5 works and I cant bear to look at some of my old code.  
 ~ Launching minecraft via [launchwrapper](https://github.com/Mojang/LegacyLauncher) to allow for mixins.  
 ~ Better theming system.  
-\+ Custom compiler + qt modules? This is in the faaaar future though.
+\+ Custom compiler + qt modules? This is in the faaaar future though.  
 \+ Minecraft launches embedded in the launcher like the old minecraft launchers?
