@@ -22,3 +22,5 @@ lib/
 \.PyMCL/
 
 stay\.here
+
+pymcl\.spec

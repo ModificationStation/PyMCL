@@ -11,10 +11,11 @@ import platform
 import pypresence
 import functools
 import urllib
+import asyncio
 
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QFont
+from PyQt5.QtWidgets import QPushButton, QWidget, QComboBox, QLineEdit, QLabel, QMessageBox, QDialog, QCheckBox, QVBoxLayout, QGroupBox, QTextEdit, QTabWidget, QScrollArea, QFileDialog, QApplication
 
 
 class mainWindow(QWidget):
@@ -27,6 +28,10 @@ class mainWindow(QWidget):
     # This is used to init the background crap such as update checking and rich presence.
     def __init__(self):
         super().__init__()
+        try:
+            self.currentInstance = os.listdir(config.MC_DIR + "/instances")[0]
+        except:
+            self.currentInstance = ""
         self.loggedIn = False  # Tells the launcher if the user is logged in.
         utils.areYouThere(config.MC_DIR + "/instances")
         screen_resolution = app.desktop().screenGeometry()  # Gets primary monitor resolution.
@@ -130,6 +135,7 @@ class mainWindow(QWidget):
             for instance in os.listdir(config.MC_DIR + "/instances"):
                 self.instanceSelect.addItem(instance)
         else:
+            item = ""
             self.instanceSelect.clear()
             for instance in os.listdir(config.MC_DIR + "/instances"):  # Instances will be verified before being listed in the future,
                 self.instanceSelect.addItem(instance)
@@ -242,6 +248,10 @@ class mainWindow(QWidget):
             if poll is None:
                 running = True
             else:
+                try:
+                    self.proxy.stop()
+                except:
+                    pass
                 raise AttributeError
         except AttributeError:
             try:
@@ -271,6 +281,11 @@ class mainWindow(QWidget):
         except:
             pass
         try:
+            self.proxy.stop()
+        except:
+            pass
+
+        try:
             # Checks if the user is an idiot.
             if self.loginBox.text() == "":
                 raise TypeError("Username not specified!")
@@ -278,8 +293,15 @@ class mainWindow(QWidget):
                 pass
             elif not self.loginBox.text().isalnum():
                 raise TypeError("Username not alphanumeric!")
-            # This better damn well work. Pretty sure this will though.
-            print(platform.platform())
+
+            self.proxiedArgs = self.instanceConfig["javaargs"]
+
+            if self.instanceConfig["proxyskin"] or self.instanceConfig["proxysound"] or self.instanceConfig["proxycape"]:
+
+                self.proxy = utils.minecraftProxy(doSkinFix=self.instanceConfig["proxyskin"], doSoundFix=self.instanceConfig["proxysound"], doCapeFix=self.instanceConfig["proxycape"], loop=asyncio.new_event_loop())
+                self.proxy.start()
+                self.proxiedArgs += " -Dhttp.proxyHost=localhost -Dhttp.proxyPort=25560 -Dhttps.proxyHost=localhost -Dhttps.proxyPort=25560"
+
             # If windows, then only override appdata. Otherwise override them all. because compatibility, amirite?
             if platform.platform().startswith("Windows"):
                 os.environ["APPDATA"] = config.MC_DIR + "/instances/" + self.currentInstance
@@ -288,7 +310,8 @@ class mainWindow(QWidget):
                 os.environ["USER.HOME"] = config.MC_DIR + "/instances/" + self.currentInstance
                 os.environ["HOME"] = config.MC_DIR + "/instances/" + self.currentInstance
             # Launch the game. I ONLY DEAL IN ABSOLUTES. (Lies!)
-            self.prc = subprocess.Popen("java " + self.instanceConfig["javaargs"] + " -Xms" + self.instanceConfig["minram"] + " -Xmx" + self.instanceConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/lwjgl_util.jar\" " + "-Djava.library.path=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/natives\" net.minecraft.client.Minecraft " + self.creds, env=dict(os.environ))
+            print("java " + self.proxiedArgs + " -Xms" + self.instanceConfig["minram"] + " -Xmx" + self.instanceConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/lwjgl_util.jar\" " + "-Djava.library.path=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/natives\" net.minecraft.client.Minecraft " + self.creds)
+            self.prc = subprocess.Popen("java " + self.proxiedArgs + " -Xms" + self.instanceConfig["minram"] + " -Xmx" + self.instanceConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/lwjgl_util.jar\" " + "-Djava.library.path=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/natives\" net.minecraft.client.Minecraft " + self.creds, env=dict(os.environ))
 
             self.launcherConfig["lastusedname"] = self.loginBox.text()
             utils.saveSettings(self.launcherConfig)
@@ -297,6 +320,7 @@ class mainWindow(QWidget):
             except:
                 pass
             self.loggedIn = False
+            self.proxiedArgs = ""
         except Exception as e:
             # Tragic.
             self.error("Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.")
@@ -308,6 +332,11 @@ class mainWindow(QWidget):
         QMessageBox.warning(self, "Warning", err, QMessageBox.Ok, QMessageBox.Ok)
 
     def forceQuit(self):
+        try:
+            self.proxy.stop()
+            self.proxy = ""
+        except:
+            pass
         try:
             self.prc.kill()
             self.prc = ""
@@ -336,7 +365,7 @@ class optionWindow(QDialog):
     # Same drill. Does background things.
     def __init__(self, parent=None):
         super().__init__(parent)
-        mainWindow.instanceConfig = utils.loadInstanceSettings(mainWindow, mainWindow.currentInstance)
+        mainWin.instanceConfig = utils.loadInstanceSettings(mainWin, mainWin.currentInstance)
         screen_resolution = app.desktop().screenGeometry()
         self.title = config.NAME + " " + config.VER + " Options"
         self.setWindowIcon(QIcon(config.ICON))
@@ -355,17 +384,29 @@ class optionWindow(QDialog):
     # Same drill. Creates things.
     def createSettingInputs(self):
         global launcherConfig
-        self.javaArgs = QLineEdit(self, text=mainWindow.instanceConfig["javaargs"])
+        self.javaArgs = QLineEdit(self, text=mainWin.instanceConfig["javaargs"])
         self.javaArgs.resize(310, 24)
         self.javaArgs.move(150, 20)
 
-        self.maxRamAllocation = QLineEdit(self, text=mainWindow.instanceConfig["maxram"])
+        self.maxRamAllocation = QLineEdit(self, text=mainWin.instanceConfig["maxram"])
         self.maxRamAllocation.resize(100, 24)
         self.maxRamAllocation.move(255, 48)
 
-        self.minRamAllocation = QLineEdit(self, text=mainWindow.instanceConfig["minram"])
+        self.minRamAllocation = QLineEdit(self, text=mainWin.instanceConfig["minram"])
         self.minRamAllocation.resize(100, 24)
         self.minRamAllocation.move(360, 48)
+
+        self.enableAutoProxySkin = QCheckBox(self)
+        self.enableAutoProxySkin.setChecked(mainWin.instanceConfig["proxyskin"])
+        self.enableAutoProxySkin.move(150, 81)
+
+        self.enableAutoProxySound = QCheckBox(self)
+        self.enableAutoProxySound.setChecked(mainWin.instanceConfig["proxysound"])
+        self.enableAutoProxySound.move(150, 109)
+
+        self.enableAutoProxyCape = QCheckBox(self)
+        self.enableAutoProxyCape.setChecked(mainWin.instanceConfig["proxycape"])
+        self.enableAutoProxyCape.move(150, 137)
 
     def createLabels(self):
         self.javaArgsLabel = QLabel(self, text="Java arguments:")
@@ -384,13 +425,40 @@ class optionWindow(QDialog):
         self.minRamAllocationLabel.move(310, 50)
         self.minRamAllocationLabel.resize(100, 20)
 
+        self.enableAutoProxySkinLabel = QLabel(self, text="Enable skin proxy:")
+        self.enableAutoProxySkinLabel.resize(100, 20)
+        self.enableAutoProxySkinLabel.move(20, 76)
+
+        self.enableAutoProxySoundLabel = QLabel(self, text="Enable sound proxy:")
+        self.enableAutoProxySoundLabel.resize(100, 20)
+        self.enableAutoProxySoundLabel.move(20, 104)
+
+        self.enableAutoProxyCapeLabel = QLabel(self, text="Enable cape proxy:")
+        self.enableAutoProxyCapeLabel.resize(100, 20)
+        self.enableAutoProxyCapeLabel.move(20, 132)
+
+        self.enableAutoProxySkinLabel2 = QLabel(self, text="(Breaks sounds if skinfix is installed!)")
+        self.enableAutoProxySkinLabel2.resize(250, 20)
+        self.enableAutoProxySkinLabel2.move(170, 76)
+
+        self.enableAutoProxySoundLabel2 = QLabel(self, text="(Backup your resources folder if using custom sounds!)")
+        self.enableAutoProxySoundLabel2.resize(300, 20)
+        self.enableAutoProxySoundLabel2.move(170, 104)
+
+        self.enableAutoProxyCapeLabel2 = QLabel(self, text="(Breaks sounds if skinfix is installed!)")
+        self.enableAutoProxyCapeLabel2.resize(250, 20)
+        self.enableAutoProxyCapeLabel2.move(170, 132)
+
     # Fires when options window is closed.
     def closeEvent(self, event, *args, **kwargs):
         # Saves config to file.
-        mainWindow.instanceConfig["javaargs"] = self.javaArgs.text()
-        mainWindow.instanceConfig["minram"] = self.minRamAllocation.text()
-        mainWindow.instanceConfig["maxram"] = self.maxRamAllocation.text()
-        utils.saveInstanceSettings(mainWindow.instanceConfig, mainWindow.currentInstance)
+        mainWin.instanceConfig["javaargs"] = self.javaArgs.text()
+        mainWin.instanceConfig["minram"] = self.minRamAllocation.text()
+        mainWin.instanceConfig["maxram"] = self.maxRamAllocation.text()
+        mainWin.instanceConfig["proxyskin"] = self.enableAutoProxySkin.isChecked()
+        mainWin.instanceConfig["proxysound"] = self.enableAutoProxySound.isChecked()
+        mainWin.instanceConfig["proxycape"] = self.enableAutoProxyCape.isChecked()
+        utils.saveInstanceSettings(mainWin.instanceConfig, mainWin.currentInstance)
 
 
 # Magic! This is how you install modpacks and delete instances.
@@ -430,7 +498,6 @@ class instanceWindow(QDialog):
     def updateRepo(self, result, modpacks):
         for widget in self.repoWidgets:
             try:
-                print("Removed")
                 widget.deleteLater()
             except:
                 pass
@@ -446,7 +513,7 @@ class instanceWindow(QDialog):
                 widget2 = QPushButton(self, text="View on pymcl.net")
                 widget1.setText(modpack["smalldesc"])
                 widget1.setReadOnly(True)
-                widget.clicked.connect(functools.partial(self.getModpackURLWrapper, self, modpack["zipurl"]))
+                widget.clicked.connect(functools.partial(self.getModpackURLWrapper, modpack["zipurl"]))
                 widget2.clicked.connect(functools.partial(utils.openModpackInBrowser, key))
                 vbox.addWidget(widget)
                 vbox.addWidget(widget1)
@@ -554,7 +621,7 @@ class instanceWindow(QDialog):
         modpacks = [f for f in os.listdir(config.MC_DIR + "/modpackzips") if os.path.isfile(config.MC_DIR + "/modpackzips/" + f) and (config.MC_DIR + "/modpackzips/" + f).endswith(".zip")]
         for modpack in modpacks:
             widget = QPushButton(self, text="Install " + modpack + ".")
-            widget.clicked.connect(functools.partial(self.installModpackWrapper, self, os.path.splitext(modpack)[0]))
+            widget.clicked.connect(functools.partial(self.installModpackWrapper, os.path.splitext(modpack)[0]))
             self.installModpackLayout.addWidget(widget)
             self.widgets.append(widget)
 
@@ -563,7 +630,7 @@ class instanceWindow(QDialog):
         self.installModpackButton = QPushButton("Install Local Modpack", self.addInstanceTab)
         self.installModpackButton.resize(150, 22)
         self.installModpackButton.move(5, 5)
-        self.installModpackButton.clicked.connect(lambda: self.getModpackFSWrapper(self, self.modpackZipDir.text()))
+        self.installModpackButton.clicked.connect(lambda: self.getModpackFSWrapper(self.modpackZipDir.text()))
 
         self.getDirButton = QPushButton("...", self.addInstanceTab)
         self.getDirButton.resize(24, 22)
@@ -582,7 +649,7 @@ class instanceWindow(QDialog):
         self.installModpackUrlButton = QPushButton("Install Modpack from URL", self.addInstanceTab)
         self.installModpackUrlButton.resize(150, 22)
         self.installModpackUrlButton.move(5, 34)
-        self.installModpackUrlButton.clicked.connect(lambda: self.getModpackURLWrapper(self, self.modpackURL.text()))
+        self.installModpackUrlButton.clicked.connect(lambda: self.getModpackURLWrapper(self.modpackURL.text()))
 
     def createStatus(self):
         self.status = QLabel(self)
@@ -611,23 +678,26 @@ class instanceWindow(QDialog):
 
 
 
-    def installModpackWrapper(self, win, modpackName):
+    def installModpackWrapper(self, modpackName):
         self.installModpack.stop()
-        self.installModpack = utils.installModpack(win=win, modpackName=modpackName)
+        self.installModpack = utils.installModpack(modpackName=modpackName)
         self.installModpack.done.connect(self.modpackInstallDone)
         self.installModpack.starting.connect(self.progressWinWrapper)
+        self.installModpack.updateIStatus.connect(self.updateIStatus)
+        self.installModpack.updateStatus.connect(self.updateStatus)
         self.installModpack.start()
 
-    def getModpackURLWrapper(self, win, modpackURL):
+    def getModpackURLWrapper(self, modpackURL):
         self.getModpackURL.stop()
-        self.getModpackURL = utils.getModpackURL(win=win, modpackURL=modpackURL)
+        self.getModpackURL = utils.getModpackURL(modpackURL=modpackURL)
         self.getModpackURL.starting.connect(self.progressWinWrapper)
         self.getModpackURL.installModpack.connect(self.installModpackWrapper)
+        self.getModpackURL.updateIStatus.connect(self.updateIStatus)
         self.getModpackURL.start()
 
-    def getModpackFSWrapper(self, win, modpackDir):
+    def getModpackFSWrapper(self, modpackDir):
         self.getModpackFS.stop()
-        self.getModpackFS = utils.getModpackFS(win=win, modpackDir=modpackDir)
+        self.getModpackFS = utils.getModpackFS(modpackDir=modpackDir)
         self.getModpackFS.starting.connect(self.progressWinWrapper)
         self.getModpackFS.installModpack.connect(self.installModpackWrapper)
         self.getModpackFS.start()
@@ -656,9 +726,14 @@ class instanceWindow(QDialog):
 
     def updateIStatus(self, text):
         try:
-            print(text)
-            self.progressWin.status.insertPlainText(text + "\n")
-            self.progressWin.status.verticalScrollBar().setValue(self.progressWin.status.verticalScrolBar().maximum())
+            if text.startswith("[") and self.progressWin.status.toPlainText().split("\n")[len(self.progressWin.status.toPlainText().split("\n"))-2].startswith("["):
+                newtext = self.progressWin.status.toPlainText().split("\n")
+                newtext = "\n".join(newtext[:len(newtext)-2])
+                newtext = newtext + "\n" + text + "\n"
+            else:
+                newtext = self.progressWin.status.toPlainText() + text + "\n"
+            self.progressWin.status.setText(newtext)
+            self.progressWin.status.verticalScrollBar().setValue(self.progressWin.status.verticalScrollBar().maximum())
         except:
             pass
 
@@ -667,14 +742,14 @@ class instanceWindow(QDialog):
     def closeEvent(self, event, *args, **kwargs):
         global mainWin
         # Wouldnt want to try and launch a non-existant instance now, do we?
-        if not os.path.exists(config.MC_DIR + "/instances/" + mainWindow.currentInstance):
+        if not os.path.exists(config.MC_DIR + "/instances/" + mainWin.currentInstance):
             try:
-                mainWindow.currentInstance = os.listdir(config.MC_DIR + "/instances")[0]
+                mainWin.currentInstance = os.listdir(config.MC_DIR + "/instances")[0]
             except:
-                mainWindow.currentInstance = ""
+                mainWin.currentInstance = ""
 
-        mainWindow.setInstance(mainWin, mainWindow.currentInstance)
-        mainWindow.createDropdowns(mainWin)
+            mainWin.setInstance(mainWin, mainWin.currentInstance)
+            mainWin.createDropdowns(mainWin)
 
 
 class installWindow(QDialog):
@@ -684,7 +759,7 @@ class installWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         screen_resolution = app.desktop().screenGeometry()
-        self.title = config.NAME + " " + config.VER + " Modpack Export Wizard"
+        self.title = config.NAME + " " + config.VER + " Modpack Installer"
         self.setWindowIcon(QIcon(config.ICON))
         self.left = screen_resolution.width() / 2 - 450
         self.top = screen_resolution.height() / 2 - 220
@@ -710,69 +785,21 @@ class installWindow(QDialog):
         self.status.resize(self.width()-10, self.height()-32)
         font = QFont()
         font.setStyleHint(QFont().Monospace)
-        font.setFamily('monospace')
+        font.setFamily("monospace")
         self.status.setFont(font)
 
     def closeEvent(self, event, *args, **kwargs):
         if not self.iWantToDie:
             event.ignore()
+        else:
+            self.status.clear()
 
 
-class exportWindow(QDialog):
-    iWantToDie = True
+# sys.stdout = open(config.MC_DIR + "/" + str(time.time()) + ".log", "w")
 
-    # Same drill. Does background things.
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        screen_resolution = app.desktop().screenGeometry()
-        self.title = config.NAME + " " + config.VER + " Modpack Installer"
-        self.setWindowIcon(QIcon(config.ICON))
-        self.left = screen_resolution.width() / 2 - 450
-        self.top = screen_resolution.height() / 2 - 220
-        self.initUI()
+threadingEvent = threading.Event()
 
-    def initUI(self):
-        self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, 450, 220)
-        self.setFixedSize(self.size())
-        self.createLabel()
-        self.createStatus()
+app = QApplication([])
+mainWin = mainWindow()
 
-    def createLabel(self):
-        self.label = QLabel(self, text="Installing modpack...")
-        self.label.move(5, 5)
-        self.label.resize(self.width()/2, 22)
-        self.label.setStyleSheet("text-align: center;")
-
-    def createStatus(self):
-        self.status = QTextEdit(self)
-        self.status.setReadOnly(True)
-        self.status.move(5, 27)
-        self.status.resize(self.width()-10, self.height()-32)
-        font = QFont()
-        font.setStyleHint(QFont().Monospace)
-        font.setFamily('monospace')
-        self.status.setFont(font)
-
-    def closeEvent(self, event, *args, **kwargs):
-        if not self.iWantToDie:
-            event.ignore()
-
-
-if __name__ == '__main__':
-    if os.path.exists("stay.here"):
-        config.MC_DIR = os.getcwd() + "/.PyMCL"
-
-    utils.areYouThere(config.MC_DIR)
-    # sys.stdout = open(config.MC_DIR + "/" + str(time.time()) + ".log", "w")
-    try:
-        mainWindow.currentInstance = os.listdir(config.MC_DIR + "/instances")[0]
-    except:
-        mainWindow.currentInstance = ""
-
-    threadingEvent = threading.Event()
-
-    app = QApplication([])
-    mainWin = mainWindow()
-
-    sys.exit(app.exec_())
+sys.exit(app.exec_())
