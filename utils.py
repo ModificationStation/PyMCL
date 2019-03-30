@@ -119,12 +119,11 @@ def login(username, password):
     }
 
     data = requests.post("https://authserver.mojang.com/authenticate", json=data)
-    print(data.content)
     data = json.loads(data.content)
 
     try:
-        return True, data["selectedProfile"]["name"] + " " + data["accessToken"]
-    except AttributeError:
+        return True, " --username=" + data["selectedProfile"]["name"] + " --session-id=" + data["accessToken"]
+    except KeyError:
         return False, None
 
 
@@ -203,15 +202,16 @@ class getModpackURL(QThread):
 class getModpackFS(QThread):
     installModpack = pyqtSignal(str)
     starting = pyqtSignal()
+    updateIStatus = pyqtSignal(str)
+    updateStatus = pyqtSignal(str)
 
-    def __init__(self, win=None, modpackDir=None):
+    def __init__(self, modpackDir=None):
         super().__init__()
-        self.win = win
-        self.modpackName = modpackDir
+        self.modpackDir = modpackDir
 
     def run(self):
         self.starting.emit()
-        if not self.modpackDir or not self.win:
+        if not self.modpackDir:
             modpackName = "Error"
         else:
             self.updateIStatus.emit("Retrieving modpack from path...")
@@ -226,7 +226,10 @@ class getModpackFS(QThread):
             try:
                 shutil.copy(self.modpackDir, config.MC_DIR + "/modpackzips/"+modpackName + ".zip")
             except:
+                traceback.print_exc()
                 modpackName = "Error"
+        self.updateStatus.emit("Modpack cached. Starting install.")
+        self.updateIStatus.emit("Modpack cached. Starting install.")
         self.installModpack.emit(modpackName)
 
     def stop(self):
@@ -283,12 +286,13 @@ class installModpack(QThread):
         print("Installing modpack")
         try:
             if self.modpackName == "Error" or self.modpackName is None:
+                traceback.print_exc()
                 raise IOError("Modpack does not exist in directory?")
             if not os.path.exists(config.MC_DIR + "/tmp/" + self.modpackName):
                 os.makedirs(config.MC_DIR + "/tmp/" + self.modpackName)
 
             # Extracts the zip file to the temp dir.
-                self.updateIStatus.emit("Extracting modpack...")
+            self.updateIStatus.emit("Extracting modpack...")
             with zipfile.ZipFile(config.MC_DIR + "/modpackzips/" + self.modpackName + ".zip", "r") as zip:
                 zip.extractall(config.MC_DIR + "/tmp/" + self.modpackName)
 
@@ -303,6 +307,7 @@ class installModpack(QThread):
                     except:
                         mcVer = None
             except:
+                traceback.print_exc()
                 self.updateIStatus.emit("No modpack name found. Using zip file name. Get the modpack author to create a \"modpack.json\" file in his/her modpack.")
                 modpackJsonName = self.modpackName
                 mcVer = None
@@ -338,7 +343,7 @@ class installModpack(QThread):
 
             # Gotta stay clean!
             self.updateIStatus.emit("Deleting temp files...")
-            remove_tree(config.MC_DIR + "/tmp/" + self.modpackName)
+            #remove_tree(config.MC_DIR + "/tmp/" + self.modpackName)
             self.updateStatus.emit("Modpack installed!", "green")
 
         # And in case the zip didnt exist in the first place.
@@ -362,6 +367,8 @@ class installModpack(QThread):
         if response.content is None:
             raise ConnectionError("Something went very wrong.")
 
+        areYouThere(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin")
+
         self.updateIStatus.emit("Started connection..")
 
         dl = 0
@@ -384,13 +391,21 @@ class installModpack(QThread):
 
         self.updateIStatus.emit("Extracted.\nExtracting modpack jar and merging jars..")
 
-        shutil.unpack_archive(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft.jar", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft", "zip")
+        try:
+            shutil.unpack_archive(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft.jar", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft", "zip")
+        except:
+            traceback.print_exc()
+            print("No modpack jar found. Making a vanilla instance with contents of modpack zip.")
 
         self.updateIStatus.emit("Extracted.\nArchiving..")
 
         shutil.make_archive(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft", "zip", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft")
 
-        os.remove(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft.jar")
+        try:
+            os.remove(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft.jar")
+        except:
+            traceback.print_exc()
+
         os.rename(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft.zip", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft.jar")
 
         self.updateIStatus.emit("Archived.\nDownloading LWJGL for " + config.OS + "..")
@@ -438,58 +453,6 @@ def rmInstance(instanceName, self):
     except:
         pass
 
-# TODO Remove this if new solution works.
-"""class minecraftProxy(threading.Thread):
-
-    def __init__(self, doSkinFix, doSoundFix, doCapeFix, loop):
-        super(minecraftProxy, self).__init__()
-        self.doSkinFix = doSkinFix
-        self.doCapeFix = doCapeFix
-        self.doSoundFix = doSoundFix
-        self.loop = loop
-
-    def getHeader(self):
-        class AddHeader:
-            def __init__(self, parent):
-                self.parent = parent
-
-            def request(self, flow):
-                if flow.request.pretty_host == "s3.amazonaws.com":
-
-                    if self.parent.doSoundFix:
-                        if flow.request.path.__contains__("MinecraftResources"):
-                            flow.request.host = "resourceproxy.pymcl.net"
-
-                    if self.parent.doSkinFix:
-                        if flow.request.path.__contains__("MinecraftSkins"):
-                            flow.request.host = "resourceproxy.pymcl.net"
-                            flow.request.path = "/skinapi.php?user=" + flow.request.path.split("/")[2].split(".")[0]
-
-                    if self.parent.doCapeFix:
-                        if flow.request.path.__contains__("MinecraftCloaks"):
-                            flow.request.host = "resourceproxy.pymcl.net"
-                            flow.request.path = "/capeapi.php?user=" + flow.request.path.split("/")[2].split(".")[0]
-
-        return AddHeader(self)
-
-    def run(self):
-        asyncio.set_event_loop(self.loop)
-        myaddon = self.getHeader()
-        opts = options.Options(listen_host="0.0.0.0", listen_port=25560)
-        pconf = proxy.config.ProxyConfig(opts)
-        self.m = DumpMaster(opts)
-        self.m.server = proxy.server.ProxyServer(pconf)
-        self.m.addons.add(myaddon)
-
-        self.m.run()
-
-    def stop(self):
-        self.m.shutdown()
-
-    def join(self):
-        threading.Thread.join(self)
-"""
-
 
 class minecraftProxy(QThread):
 
@@ -521,6 +484,17 @@ class minecraftProxy(QThread):
                         if flow.request.path.__contains__("MinecraftCloaks"):
                             flow.request.host = "resourceproxy.pymcl.net"
                             flow.request.path = "/capeapi.php?user=" + flow.request.path.split("/")[2].split(".")[0]
+
+                if flow.request.pretty_host.__contains__("minecraft.net"):
+                    if self.parent.doSkinFix:
+                        if flow.request.path.__contains__("skin"):
+                            flow.request.host = "resourceproxy.pymcl.net"
+                            flow.request.path = "/skinapi.php?user=" + flow.request.path.split("/")[2].split(".")[0]
+
+                    if self.parent.doCapeFix:
+                        if flow.request.path.__contains__("cloak"):
+                            flow.request.host = "resourceproxy.pymcl.net"
+                            flow.request.path = "/capeapi.php?user=" + flow.request.path.split("=")[1]
 
         return AddHeader(self)
 

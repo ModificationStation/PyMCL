@@ -96,7 +96,7 @@ class mainWindow(QWidget):
             else:
                 self.error("Invalid credidentials.")
         else:
-            self.creds = self.loginBox.text()
+            self.creds = " --username=" + self.loginBox.text()
             self.launch()
 
         self.loginButton.setText("Force Quit")
@@ -302,16 +302,14 @@ class mainWindow(QWidget):
                 self.proxy.start()
                 self.proxiedArgs += " -Dhttp.proxyHost=localhost -Dhttp.proxyPort=25560 -Dhttps.proxyHost=localhost -Dhttps.proxyPort=25560"
 
-            # If windows, then only override appdata. Otherwise override them all. because compatibility, amirite?
-            if platform.platform().startswith("Windows"):
-                os.environ["APPDATA"] = config.MC_DIR + "/instances/" + self.currentInstance
-            else:
-                os.environ["APPDATA"] = config.MC_DIR + "/instances/" + self.currentInstance
-                os.environ["USER.HOME"] = config.MC_DIR + "/instances/" + self.currentInstance
-                os.environ["HOME"] = config.MC_DIR + "/instances/" + self.currentInstance
-            # Launch the game. I ONLY DEAL IN ABSOLUTES. (Lies!)
-            print("java " + self.proxiedArgs + " -Xms" + self.instanceConfig["minram"] + " -Xmx" + self.instanceConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/lwjgl_util.jar\" " + "-Djava.library.path=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/natives\" net.minecraft.client.Minecraft " + self.creds)
-            self.prc = subprocess.Popen("java " + self.proxiedArgs + " -Xms" + self.instanceConfig["minram"] + " -Xmx" + self.instanceConfig["maxram"] + " -cp \"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/minecraft.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/jinput.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/lwjgl.jar;" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/lwjgl_util.jar\" " + "-Djava.library.path=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/natives\" net.minecraft.client.Minecraft " + self.creds, env=dict(os.environ))
+            # Overrides all references to %appdata%, $user.home and $home
+            os.environ["APPDATA"] = config.MC_DIR + "/instances/" + self.currentInstance
+            os.environ["USER.HOME"] = config.MC_DIR + "/instances/" + self.currentInstance
+            os.environ["HOME"] = config.MC_DIR + "/instances/" + self.currentInstance
+
+            # Launch the game. I ONLY DEAL IN ABSOLUTES.
+            print("java " + self.proxiedArgs + " -Xms" + self.instanceConfig["minram"] + " -Xmx" + self.instanceConfig["maxram"] + " -jar \"" + utils.resourcePath("EasyMineLauncher.jar") + "\" --lwjgl-dir=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin" + "\" --jar=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin/minecraft.jar" + "\" --native-dir=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/natives\"" + " --height=520 --width=870 --x=" + str(int((app.desktop().screenGeometry().width() / 2) - 435)) + " --y=" + str(int((app.desktop().screenGeometry().height() / 2) - 270)) + self.creds)
+            self.prc = subprocess.Popen("java " + self.proxiedArgs + " -Xms" + self.instanceConfig["minram"] + " -Xmx" + self.instanceConfig["maxram"] + " -jar \"" + utils.resourcePath("EasyMineLauncher.jar") + "\" --lwjgl-dir=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin" + "\" --jar=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin/minecraft.jar" + "\" --native-dir=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/natives\"" + " --height=520 --width=870 --x=" + str(int((app.desktop().screenGeometry().width() / 2) - 435)) + " --y=" + str(int((app.desktop().screenGeometry().height() / 2) - 270)) + self.creds, env=dict(os.environ))
 
             self.launcherConfig["lastusedname"] = self.loginBox.text()
             utils.saveSettings(self.launcherConfig)
@@ -346,9 +344,6 @@ class mainWindow(QWidget):
     # Fires whe the launcher is closed.
     def closeEvent(self, event):
         global checkAliveTimer
-        # Deletes the tmp folder. Gotta keep those directories clean!
-        if os.path.exists(config.MC_DIR + "/tmp"):
-            shutil.rmtree(config.MC_DIR + "/tmp")
         checkAliveTimer.cancel()
         try:
             self.pres.close()
@@ -358,6 +353,10 @@ class mainWindow(QWidget):
             instanceWindow.loop.close()
         except:
             pass
+
+        # Deletes the tmp folder. Gotta keep those directories clean!
+        if os.path.exists(config.MC_DIR + "/tmp"):
+            shutil.rmtree(config.MC_DIR + "/tmp")
 
 
 # The option window. (Duh!)
@@ -680,7 +679,7 @@ class instanceWindow(QDialog):
 
     def installModpackWrapper(self, modpackName):
         self.installModpack.stop()
-        self.installModpack = utils.installModpack(modpackName=modpackName)
+        self.installModpack = utils.installModpack(modpackName)
         self.installModpack.done.connect(self.modpackInstallDone)
         self.installModpack.starting.connect(self.progressWinWrapper)
         self.installModpack.updateIStatus.connect(self.updateIStatus)
@@ -689,7 +688,7 @@ class instanceWindow(QDialog):
 
     def getModpackURLWrapper(self, modpackURL):
         self.getModpackURL.stop()
-        self.getModpackURL = utils.getModpackURL(modpackURL=modpackURL)
+        self.getModpackURL = utils.getModpackURL(modpackURL)
         self.getModpackURL.starting.connect(self.progressWinWrapper)
         self.getModpackURL.installModpack.connect(self.installModpackWrapper)
         self.getModpackURL.updateIStatus.connect(self.updateIStatus)
@@ -697,7 +696,7 @@ class instanceWindow(QDialog):
 
     def getModpackFSWrapper(self, modpackDir):
         self.getModpackFS.stop()
-        self.getModpackFS = utils.getModpackFS(modpackDir=modpackDir)
+        self.getModpackFS = utils.getModpackFS(modpackDir)
         self.getModpackFS.starting.connect(self.progressWinWrapper)
         self.getModpackFS.installModpack.connect(self.installModpackWrapper)
         self.getModpackFS.start()
@@ -725,6 +724,7 @@ class instanceWindow(QDialog):
         self.status.setStyleSheet("color: " + color + "; background-color: " + bgcolor + ";")
 
     def updateIStatus(self, text):
+        print(text)
         try:
             if text.startswith("[") and self.progressWin.status.toPlainText().split("\n")[len(self.progressWin.status.toPlainText().split("\n"))-2].startswith("["):
                 newtext = self.progressWin.status.toPlainText().split("\n")

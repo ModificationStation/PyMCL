@@ -11,26 +11,30 @@ class AddHeader:
     def request(flow):
         if flow.request.pretty_host == "s3.amazonaws.com":
 
-            if doSoundFix == True:
+            if doSoundFix:
                 if flow.request.path.__contains__("MinecraftResources"):
                     flow.request.host = "resourceproxy.pymcl.net"
 
-            if doSkinFix == True:
+            if doSkinFix:
                 if flow.request.path.__contains__("MinecraftSkins"):
-                    response = requests.get("http://api.mojang.com/users/profiles/minecraft", verify=False)
-                    uid = json.loads(response.content)["id"]
-                    img64 = requests.get("http://sessionserver.mojang.com/session/minecraft/profile/" + uid, verify=False)
-                    img = requests.get(base64.decode(img64)["textures"]["SKIN"])
-                    flow.response = http.HTTPResponse.make(
-                        200,
-                        img,
-                        {"Content-Type": "image/png"}
-                    )
+                    flow.request.host = "resourceproxy.pymcl.net"
+                    flow.request.path = "/skinapi.php?user=" + flow.request.path.split("/")[2].split(".")[0]
 
-            if doCapeFix == True:
+            if doCapeFix:
                 if flow.request.path.__contains__("MinecraftCloaks"):
                     flow.request.host = "resourceproxy.pymcl.net"
                     flow.request.path = "/capeapi.php?user=" + flow.request.path.split("/")[2].split(".")[0]
+
+        if flow.request.pretty_host.__contains__("minecraft.net"):
+            if doSkinFix:
+                if flow.request.path.__contains__("skin"):
+                    flow.request.host = "resourceproxy.pymcl.net"
+                    flow.request.path = "/skinapi.php?user=" + flow.request.path.split("/")[2].split(".")[0]
+
+            if doCapeFix:
+                if flow.request.path.__contains__("cloak"):
+                    flow.request.host = "resourceproxy.pymcl.net"
+                    flow.request.path = "/capeapi.php?user=" + flow.request.path.split("=")[1]
 
 
 def start():
