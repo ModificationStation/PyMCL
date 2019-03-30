@@ -63,15 +63,26 @@ The beginning of something awesome.
 \+ Automatic creation of instances from partial jars. Will only initially support b1.7.3 though.  
 \- Python library "appdirs" no longer used. Shaves about 10kb off the file size. /shrug  
 
-### Upcoming a0.6-pre2
+### a0.6-pre2
 ETA unknown. Likely about 1-2 weeks after pre-1.
 
 \#\+ A proper wiki. (WIP)  
 \#\+\+ Online repo of mods, texturepacks and themes that can be installed.  
 \+ Command line arguments! Allows exporting of instances and overriding of install directory along with some more options coming in the future! Use -h to get started.  
 \+ There is now an instance setting to use a proxy to fix skins, sounds and capes!
-\* Techically a modification, but minecraft now launches via MinecraftApplet.  
 \* Fixed instance settings not loading or saving correctly.  
+
+### a0.6-pre2.1
+
+~ Made it so that more things log to console.  
+\+ EasyMineLauncher is now used to launch minecraft. This uses LaunchWrapper, which allows modders to use mixins.  
+\- Removed some commented out legacy code.  
+\* Techically a modification, but minecraft now launches via MinecraftApplet.  
+\* Username not being set on minecraft a1.2.6 and below should be fixed.  
+\* Fixed a crash when logon failes.  
+\* Fixed a crash when installing local modpacks.  
+\* Fixed a crash when installing a partial modpack that didnt have a bin folder.  
+\* Fixed the skin and cape fix proxy not working on really old versions of minecraft.  
 
 ### Upcoming a0.6-pre3
 What pre2 was meant to be.
@@ -95,7 +106,6 @@ Woo!!!11 Automate EVERYTHING!
 
 ~ UI overhaul. Some of the UI isnt fit for purpose anymore.  
 ~ Yet another rewrite. I have learned a lot about how pyqt5 works and I cant bear to look at some of my old code.  
-~ Launching minecraft via [launchwrapper](https://github.com/Mojang/LegacyLauncher) to allow for mixins.  
 ~ Better theming system.  
 \+ Custom compiler + qt modules? This is in the faaaar future though.  
 \+ Minecraft launches embedded in the launcher like the old minecraft launchers?
