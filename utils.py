@@ -12,6 +12,7 @@ import sys
 import requests
 import json
 import asyncio
+import configparser
 
 from mitmproxy import proxy, options
 from mitmproxy.tools.dump import DumpMaster
@@ -276,9 +277,10 @@ class installModpack(QThread):
     updateIStatus = pyqtSignal(str)
     updateStatus = pyqtSignal(str, str)
 
-    def __init__(self, modpackName=None):
+    def __init__(self, modpackName=None, isVanilla=False):
         super().__init__()
         self.modpackName = modpackName
+        self.isVanilla = isVanilla
 
     def run(self):
         print("starting")
@@ -298,26 +300,32 @@ class installModpack(QThread):
 
             # Get the modpack's name. if it cant find one, then it uses the name of the zip.
             self.updateIStatus.emit("Installing modpack...")
-            try:
-                with open(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/modpack.json", "r") as file:
-                    modpackJson = json.loads(file.read())
-                    modpackJsonName = modpackJson["modpackname"]
-                    try:
-                        mcVer = modpackJson["mcver"]
-                    except:
-                        mcVer = None
-            except:
-                traceback.print_exc()
-                self.updateIStatus.emit("No modpack name found. Using zip file name. Get the modpack author to create a \"modpack.json\" file in his/her modpack.")
-                modpackJsonName = self.modpackName
-                mcVer = None
+            if os.path.exists(config.MC_DIR + "/tmp/" + self.modpackName + "/" + os.path.basename([x[0] for x in os.walk(config.MC_DIR + "/tmp/" + self.modpackName + "/")][1]) + "/mmc-pack.json"):
+                self.updateIStatus.emit("MultiMC modpack detected.")
+                modpackJsonName, tmpDir = self.makeMMCModpack()
+            else:
+                tmpDir = config.MC_DIR + "/tmp/" + self.modpackName
+                try:
+                    with open(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/modpack.json", "r") as file:
+                        modpackJson = json.loads(file.read())
+                        modpackJsonName = modpackJson["modpackname"]
+                        try:
+                            mcVer = modpackJson["mcver"]
+                        except:
+                            mcVer = None
+                        self.updateIStatus.emit("PyMCL modpack detected.")
+                except:
+                    traceback.print_exc()
+                    self.updateIStatus.emit("No modpack name found. Using zip file name. Get the modpack author to create a \"modpack.json\" file in his/her modpack.")
+                    modpackJsonName = self.modpackName
+                    mcVer = None
 
-            if mcVer:
-                self.makeModpack(mcVer)
+                if mcVer:
+                    self.makeModpack(mcVer)
 
             areYouThere(config.MC_DIR + "/instances/" + modpackJsonName)
 
-            copy_tree(config.MC_DIR + "/tmp/" + self.modpackName, config.MC_DIR + "/instances/" + modpackJsonName)
+            copy_tree(tmpDir, config.MC_DIR + "/instances/" + modpackJsonName)
             self.updateIStatus.emit("Finding Readmes")
 
             # Finds all files that start with readme, read me, contains, included, mod list, modlist and credits.
@@ -341,10 +349,46 @@ class installModpack(QThread):
                 traceback.print_exc()
                 print("There was a problem opening readmes.")
 
+            self.updateIStatus.emit("Downloading missing resources if any.")
+            self.updateStatus.emit("Downloading missing resources if any.", "black")
+
+            md5List = []
+            with requests.get("http://resourceproxy.pymcl.net/MinecraftResources") as response:
+                trip = False
+                for string in response.text.split("<Key>"):
+                    if trip:
+                        md5List.append(string.split("</Key>")[0])
+                    else:
+                        trip = True
+            base = (config.MC_DIR + "/instances/" + self.modpackName + "/.minecraft/resources").replace("\\", "/") + "/"
+            for file in md5List:
+                if not os.path.exists(base + file):
+                    with requests.get("https://resourceproxy.pymcl.net/MinecraftResources/" + file, stream=True) as response:
+                        total_length = response.headers.get("content-length")
+                        if response.content is None:
+                            raise ConnectionError("Something went very wrong.")
+
+                        areYouThere("/".join((base + file).split("/")[0:-1]))
+
+                        self.updateIStatus.emit("Started connection.\nDownloading \"" + file + "\"")
+
+                        dl = 0
+                        total_length = int(total_length)
+                        with io.open(base + file, 'wb') as fd:
+                            oldDone = 0
+                            for chunk in response.iter_content(chunk_size=4096):
+                                dl += len(chunk)
+                                fd.write(chunk)
+                                done = int(50 * dl / total_length)
+                                if done != oldDone:
+                                    self.updateIStatus.emit("[%s%s]" % ("=" * done, " " * (50 - done)))
+                                    oldDone = done
+
+
             # Gotta stay clean!
             self.updateIStatus.emit("Deleting temp files...")
             #remove_tree(config.MC_DIR + "/tmp/" + self.modpackName)
-            self.updateStatus.emit("Modpack installed!", "green")
+            self.updateStatus.emit("Instance installed!", "green")
 
         # And in case the zip didnt exist in the first place.
         except Exception as e:
@@ -383,8 +427,6 @@ class installModpack(QThread):
                     self.updateIStatus.emit("[%s%s]" % ("=" * done, " " * (50-done)))
                     oldDone = done
 
-        self.wait(100)
-
         self.updateIStatus.emit("Downloaded.\nExtracting vanilla jar..")
 
         shutil.unpack_archive(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/vanillamc.jar", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft", "zip")
@@ -396,6 +438,8 @@ class installModpack(QThread):
         except:
             traceback.print_exc()
             print("No modpack jar found. Making a vanilla instance with contents of modpack zip.")
+
+        shutil.rmtree(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft/META-INF")
 
         self.updateIStatus.emit("Extracted.\nArchiving..")
 
@@ -436,9 +480,113 @@ class installModpack(QThread):
         shutil.rmtree(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/minecraft")
         os.remove(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/vanillamc.jar")
 
+    def makeMMCModpack(self):
+        supportedVersions = ("b1.7.3", "a1.2.6")
+        tmpDir = config.MC_DIR + "/tmp/" + self.modpackName
+        tmpDir = [x[0] for x in os.walk(tmpDir)][1] + "/"
+        mmcModpackJson = json.loads(open(tmpDir + "mmc-pack.json").read())["components"]
+        print(json.dumps(mmcModpackJson))
+        found = False
+        for result in find_values("version", json.dumps(mmcModpackJson)):
+            if result in supportedVersions:
+                self.updateIStatus.emit("Getting versions")
+                with requests.get("https://files.pymcl.net/client/versions.json") as response:
+                    versionID = json.loads(response.content)[result]
+                    found = True
+        if not found:
+            raise AttributeError("Modpack cannot be installed. No supported version found.")
+
+        self.updateIStatus.emit("Downloading minecraft.jar..")
+
+        self.updateIStatus.emit("Attempting version download...")
+        response = requests.get("https://launcher.mojang.com/v1/objects/" + versionID + "/client.jar", stream=True)
+        total_length = response.headers.get("content-length")
+        if response.content is None:
+            raise ConnectionError("Something went very wrong.")
+
+        areYouThere(tmpDir + ".minecraft/bin")
+
+        self.updateIStatus.emit("Started connection..")
+        self.updateIStatus.emit("Started connection..")
+
+        dl = 0
+        total_length = int(total_length)
+        with io.open(tmpDir + ".minecraft/bin/vanillamc.jar", 'wb') as fd:
+            oldDone = 0
+            for chunk in response.iter_content(chunk_size=4096):
+                dl += len(chunk)
+                fd.write(chunk)
+                done = int(50 * dl / total_length)
+                if done != oldDone:
+                    self.updateIStatus.emit("[%s%s]" % ("=" * done, " " * (50 - done)))
+                    oldDone = done
+
+        self.updateIStatus.emit("Downloaded.\nExtracting vanilla jar..")
+
+        shutil.unpack_archive(tmpDir + ".minecraft/bin/vanillamc.jar", tmpDir + ".minecraft/bin/minecraft", "zip")
+
+        self.updateIStatus.emit("Extracting jarmods into minecraft.jar")
+
+        for mod in mmcModpackJson:
+            try:
+                if mod["uid"].startswith("org.multimc.jarmod."):
+                    self.updateIStatus.emit("Adding \"" + mod["cachedName"] + "\" to jar")
+                    shutil.unpack_archive(tmpDir + "jarmods/" + mod["uid"].split(".")[3] + ".jar", tmpDir + ".minecraft/bin/minecraft", "zip")
+            except:
+                traceback.print_exc()
+
+        self.updateIStatus.emit("Extracted.\nArchiving..")
+
+        shutil.rmtree(tmpDir + ".minecraft/bin/minecraft/META-INF")
+
+        shutil.make_archive(tmpDir + ".minecraft/bin/minecraft", "zip", tmpDir + ".minecraft/bin/minecraft")
+
+        os.rename(tmpDir + ".minecraft/bin/minecraft.zip", tmpDir + ".minecraft/bin/minecraft.jar")
+
+        self.updateIStatus.emit("Archived.\nDownloading LWJGL for " + config.OS + "..")
+
+        response = requests.get("https://files.pymcl.net/client/lwjgl/lwjgl." + config.OS + ".zip", stream=True)
+        total_length = response.headers.get("content-length")
+
+        self.updateIStatus.emit("Started connection..")
+
+        dl = 0
+        total_length = int(total_length)
+        with io.open(config.MC_DIR + "/tmp/lwjgl.zip", 'wb') as fd:
+            oldDone = 0
+            for chunk in response.iter_content(chunk_size=4096):
+                dl += len(chunk)
+                fd.write(chunk)
+                done = int(50 * dl / total_length)
+                if done != oldDone:
+                    self.updateIStatus.emit("[%s%s]" % ("=" * done, " " * (50 - done)))
+                    oldDone = done
+
+        self.updateIStatus.emit("Downloaded.\nExtracting LWJGL..")
+
+        shutil.unpack_archive(config.MC_DIR + "/tmp/lwjgl.zip", tmpDir + ".minecraft/bin")
+
+        self.updateIStatus.emit("Extracted.\nCleaning up..")
+
+        shutil.rmtree(tmpDir + ".minecraft/bin/minecraft")
+        os.remove(tmpDir + ".minecraft/bin/vanillamc.jar")
+        return os.path.basename(tmpDir.strip("/")), tmpDir
+
     def stop(self):
         self.threadactive = False
         self.wait()
+
+
+def find_values(id, json_repr):
+    results = []
+
+    def _decode_dict(a_dict):
+        try: results.append(a_dict[id])
+        except KeyError: pass
+        return a_dict
+
+    json.loads(json_repr, object_hook=_decode_dict)
+    return results
 
 
 # Simply deletes a given instance.

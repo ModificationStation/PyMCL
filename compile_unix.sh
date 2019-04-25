@@ -16,7 +16,7 @@ chmod a+x venv/bin/activate
 source venv/bin/activate
 
 echo Adding dependencies.
-pip install pyqt5 requests appdirs pyinstaller pypresence
+pip install pyqt5 requests appdirs pyinstaller pypresence mitmproxy
 
 echo Using pyinstaller.
 pyinstaller -y -F -i "favicon.ico" --add-data "background.png":"." --add-data "logo.png":"." --add-data "favicon.ico":"." --add-data "blogbackground.png":"." --add-data "blog.html":"." --add-data "refresh.png":"." --add-data "venv/Lib/site-packages/mitmproxy/addons/onboardingapp":"mitmproxy/addons/onboardingapp" --add-data "EasyMineLauncher.jar":"." pymcl.py

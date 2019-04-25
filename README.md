@@ -14,6 +14,7 @@ This list is based off of the old beta launcher.
  - [x] Modpack manager.
  - [x] Fixed login.
  - [x] Discord integration.
+ - [x] MultiMC instance support.
  - [ ] Mod installer system similar to Nexus Mod Manager.
  - [ ] Stupidly lightweight.
 
@@ -50,4 +51,4 @@ Then use pyinstaller on the launcher:
    instead of a colon (`:`) in the `--add-data` arguments.
  - The compiled executable will be put in the dist folder when it is done.
  - To have a console for the launcher, remove the `-w` in the compile arguments when compiling.
- - The final file is pretty big. (~80mb)
+ - The final file is pretty big. (~40mb)

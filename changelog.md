@@ -64,7 +64,7 @@ The beginning of something awesome.
 \- Python library "appdirs" no longer used. Shaves about 10kb off the file size. /shrug  
 
 ### a0.6-pre2
-ETA unknown. Likely about 1-2 weeks after pre-1.
+Some nice things ive been working on.
 
 \#\+ A proper wiki. (WIP)  
 \#\+\+ Online repo of mods, texturepacks and themes that can be installed.  
@@ -73,6 +73,7 @@ ETA unknown. Likely about 1-2 weeks after pre-1.
 \* Fixed instance settings not loading or saving correctly.  
 
 ### a0.6-pre2.1
+So many bugs. SO MANY MIXINS.
 
 ~ Made it so that more things log to console.  
 \+ EasyMineLauncher is now used to launch minecraft. This uses LaunchWrapper, which allows modders to use mixins.  
@@ -87,20 +88,25 @@ ETA unknown. Likely about 1-2 weeks after pre-1.
 ### Upcoming a0.6-pre3
 What pre2 was meant to be.
 
+\+ Links in the blog section are now clickable. They will open in your default browser.
 \+ Automatic resource downloads when installing instances/modpacks. Will only download missing files. It will not replace modified files.  
-\+ Support for a1.2.6, b1.6.6.  
-\+ Automatic "dumb" mod installing. (just copies contents to mc.jar)    
-\+ The launcher will have a working modpack exporter window.  
-\+ A "create instance" button for creating vanilla instances.  
+\+ A working modpack exporter window. Launch PyMCL with `--export` OR `-e`.  
+\+ MultiMC instance support. This is extremely experimental and may not work with some modpacks.  
+\* Fixed PyMCL not deleting META-INF when needed.  
+\* Fixed random crashes when closing the instance manager for good.  
 
-### Upcoming a0.6
+### Upcoming a0.6-pre4
 Woo!!!11 Automate EVERYTHING!  
 
+\+ Automated instance creation.   
 \#\+\+ Online mod repository with tons of converted mods.  
 \+ Revamped instance manager.  
-\+ Automatic "semi-smart" mod installing. Most likely only gonna support optional classes and folders though.  
+\+ Automatic "dumb" mod installing. (just copies contents to mc.jar)   
 \+ Automatic launcher updates?  
 
+## Upcoming a0.6-pre5
+
+\+ Automatic "semi-smart" mod installing. Most likely only gonna support optional classes and folders though.  
 
 ### Upcoming b1.0+
 

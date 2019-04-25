@@ -15,7 +15,7 @@ import asyncio
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtWidgets import QPushButton, QWidget, QComboBox, QLineEdit, QLabel, QMessageBox, QDialog, QCheckBox, QVBoxLayout, QGroupBox, QTextEdit, QTabWidget, QScrollArea, QFileDialog, QApplication
+from PyQt5.QtWidgets import QPushButton, QWidget, QComboBox, QLineEdit, QLabel, QMessageBox, QDialog, QCheckBox, QVBoxLayout, QGroupBox, QTextBrowser, QTabWidget, QScrollArea, QFileDialog, QApplication, QTextEdit
 
 
 class mainWindow(QWidget):
@@ -181,10 +181,11 @@ class mainWindow(QWidget):
 
     # Doesnt actually anymore, but I liked the name, so it stays.
     def createTheInternet(self):
-        self.theInternet = QTextEdit(self)
+        self.theInternet = QTextBrowser(self)
         with open(config.BLOG, "r", encoding="utf-8") as file:
             content = file.read()
         self.theInternet.setHtml(content.replace("&background&", urllib.parse.quote(config.BLOG_BACKGROUND.replace("\\", "/"))))
+        self.theInternet.setOpenExternalLinks(True)
         self.theInternet.show()
         self.theInternet.setReadOnly(True)
 
@@ -744,12 +745,12 @@ class instanceWindow(QDialog):
         # Wouldnt want to try and launch a non-existant instance now, do we?
         if not os.path.exists(config.MC_DIR + "/instances/" + mainWin.currentInstance):
             try:
-                mainWin.currentInstance = os.listdir(config.MC_DIR + "/instances")[0]
+                mainWin.currentInstance = os.listdir(config.MC_DIR + "/instances")[1]
             except:
                 mainWin.currentInstance = ""
 
-            mainWin.setInstance(mainWin, mainWin.currentInstance)
-            mainWin.createDropdowns(mainWin)
+        mainWin.createDropdowns()
+        mainWin.setInstance(mainWin.currentInstance)
 
 
 class installWindow(QDialog):

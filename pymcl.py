@@ -12,7 +12,7 @@ helpText = """Usage: pymcl (params)
 
 Accepted params:
     -h: Shows this.
-    -d, --dir <path>: Use the directory specified.
+    -p, --parentdir <path>: Use the directory specified.
     -e, --export: Starts PyMCL in export mode."""
 
 
@@ -31,7 +31,7 @@ def main(argv):
             print(helpText)
             sys.exit()
         elif opt in ("-p", "--parentdir"):
-            parentDir = arg
+            parentDir = os.path.abspath(arg)
         elif opt in ("-e", "--export"):
             exportMode = True
 
@@ -44,13 +44,12 @@ def main(argv):
     if parentDir:
         if not os.path.exists(parentDir):
             if config.OS == "Darwin":
-                print("Do you want to create \"" + parentDir + "/.PyMCL\"? (y/N)")
+                print("Do you want to create \"" + parentDir + "/PyMCL\"? (y/N)")
             else:
                 print("Do you want to create \"" + parentDir + "/.PyMCL\"? (y/N)")
-            if not input(": ").lower() == ("y", "yes"):
+            if not str(input(": ")).lower() in ("y", "yes"):
                 exit()
-        if parentDir.endswith("/") or parentDir.endswith("\\"):
-            parentDir = parentDir[:1]
+        parentDir = parentDir.strip("/").strip("\\")
         if config.OS == "Darwin":
             config.MC_DIR = parentDir + "/PyMCL"
         else:
