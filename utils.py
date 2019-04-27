@@ -123,7 +123,7 @@ def login(username, password):
     data = json.loads(data.content)
 
     try:
-        return True, " --username=" + data["selectedProfile"]["name"] + " --session-id=" + data["accessToken"]
+        return True, "--username=" + data["selectedProfile"]["name"] + " --session-id=" + data["accessToken"]
     except KeyError:
         return False, None
 

@@ -96,7 +96,7 @@ class mainWindow(QWidget):
             else:
                 self.error("Invalid credidentials.")
         else:
-            self.creds = " --username=" + self.loginBox.text()
+            self.creds = "--username=" + self.loginBox.text()
             self.launch()
 
         self.loginButton.setText("Force Quit")
@@ -295,13 +295,38 @@ class mainWindow(QWidget):
             elif not self.loginBox.text().isalnum():
                 raise TypeError("Username not alphanumeric!")
 
-            self.proxiedArgs = self.instanceConfig["javaargs"]
+            self.launchArgs = ["java"]
+            for arg in self.instanceConfig["javaargs"].split(" -"):
+                if not len(arg) < 3:
+                    self.launchArgs.append("-" + arg)
 
             if self.instanceConfig["proxyskin"] or self.instanceConfig["proxysound"] or self.instanceConfig["proxycape"]:
 
                 self.proxy = utils.minecraftProxy(doSkinFix=self.instanceConfig["proxyskin"], doSoundFix=self.instanceConfig["proxysound"], doCapeFix=self.instanceConfig["proxycape"], loop=asyncio.new_event_loop())
                 self.proxy.start()
-                self.proxiedArgs += " -Dhttp.proxyHost=localhost -Dhttp.proxyPort=25560 -Dhttps.proxyHost=localhost -Dhttps.proxyPort=25560"
+                self.launchArgs.append("-Dhttp.proxyHost=localhost")
+                self.launchArgs.append("-Dhttp.proxyPort=25560")
+                self.launchArgs.append("-Dhttps.proxyHost=localhost")
+                self.launchArgs.append("-Dhttps.proxyPort=25560")
+            self.launchArgs.append("-Xms" + self.instanceConfig["minram"])
+            self.launchArgs.append("-Xmx" + self.instanceConfig["maxram"])
+            self.launchArgs.append("-jar")
+            self.launchArgs.append(utils.resourcePath("EasyMineLauncher.jar"))
+            self.launchArgs.append("--lwjgl-dir=" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin")
+            self.launchArgs.append("--jar=" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin/minecraft.jar")
+            self.launchArgs.append("--native-dir=" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin/natives")
+            self.launchArgs.append("--height=520")
+            self.launchArgs.append("--width=870")
+            self.launchArgs.append("--x=" + str(int((app.desktop().screenGeometry().width() / 2) - 435)))
+            self.launchArgs.append("--y=" + str(int((app.desktop().screenGeometry().height() / 2) - 270)))
+            self.launchArgs.append(self.creds.split(" ")[0])
+            try:
+                self.launchArgs.append(self.creds.split(" ")[1])
+            except:
+                pass
+            print(self.creds.split(" "))
+
+            print(self.launchArgs[:-1])
 
             # Overrides all references to %appdata%, $user.home and $home
             os.environ["APPDATA"] = config.MC_DIR + "/instances/" + self.currentInstance
@@ -309,8 +334,7 @@ class mainWindow(QWidget):
             os.environ["HOME"] = config.MC_DIR + "/instances/" + self.currentInstance
 
             # Launch the game. I ONLY DEAL IN ABSOLUTES.
-            print("java " + self.proxiedArgs + " -Xms" + self.instanceConfig["minram"] + " -Xmx" + self.instanceConfig["maxram"] + " -jar \"" + utils.resourcePath("EasyMineLauncher.jar") + "\" --lwjgl-dir=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin" + "\" --jar=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin/minecraft.jar" + "\" --native-dir=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/natives\"" + " --height=520 --width=870 --x=" + str(int((app.desktop().screenGeometry().width() / 2) - 435)) + " --y=" + str(int((app.desktop().screenGeometry().height() / 2) - 270)) + self.creds)
-            self.prc = subprocess.Popen("java " + self.proxiedArgs + " -Xms" + self.instanceConfig["minram"] + " -Xmx" + self.instanceConfig["maxram"] + " -jar \"" + utils.resourcePath("EasyMineLauncher.jar") + "\" --lwjgl-dir=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin" + "\" --jar=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin/minecraft.jar" + "\" --native-dir=\"" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft" + "/bin/natives\"" + " --height=520 --width=870 --x=" + str(int((app.desktop().screenGeometry().width() / 2) - 435)) + " --y=" + str(int((app.desktop().screenGeometry().height() / 2) - 270)) + self.creds, env=dict(os.environ))
+            self.prc = subprocess.Popen(self.launchArgs, env=dict(os.environ))
 
             self.launcherConfig["lastusedname"] = self.loginBox.text()
             utils.saveSettings(self.launcherConfig)
@@ -319,10 +343,10 @@ class mainWindow(QWidget):
             except:
                 pass
             self.loggedIn = False
-            self.proxiedArgs = ""
+            self.launchArgs = []
         except Exception as e:
             # Tragic.
-            self.error("Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.")
+            self.error("Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.\nCheck your launch args if you have set any too.")
             print("Rejected username: " + self.loginBox.text())
             print(e)
 
