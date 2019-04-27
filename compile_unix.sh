@@ -19,6 +19,6 @@ echo Adding dependencies.
 pip install pyqt5 requests appdirs pyinstaller pypresence mitmproxy
 
 echo Using pyinstaller.
-pyinstaller -y -F -i "favicon.ico" --add-data "background.png":"." --add-data "logo.png":"." --add-data "favicon.ico":"." --add-data "blogbackground.png":"." --add-data "blog.html":"." --add-data "refresh.png":"." --add-data "venv/Lib/site-packages/mitmproxy/addons/onboardingapp":"mitmproxy/addons/onboardingapp" --add-data "EasyMineLauncher.jar":"." pymcl.py
+pyinstaller -y -F -i "favicon.ico" --add-data "background.png":"." --add-data "logo.png":"." --add-data "favicon.ico":"." --add-data "blogbackground.png":"." --add-data "blog.html":"." --add-data "refresh.png":"." --add-data "venv/lib/python3.7/site-packages/mitmproxy/addons/onboardingapp":"mitmproxy/addons/onboardingapp" --add-data "EasyMineLauncher.jar":"." pymcl.py
 echo Complete!
 read -p "Press enter to continue..."

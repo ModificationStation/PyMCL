@@ -31,7 +31,7 @@ DEFAULT_INSTANCE_CONFIG = """
 }
 """
 
-VER = "v0.6 Alpha Pre 3"
+VER = "v0.6 Alpha Pre 3.2"
 
 # Sets minecraft install dir. DO NOT TOUCH UNLESS YOU KNOW WHAT YOU ARE DOING.
 # Touching this can cause unintended file deletion/overwrites/etc.

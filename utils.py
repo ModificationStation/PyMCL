@@ -360,7 +360,7 @@ class installModpack(QThread):
                         md5List.append(string.split("</Key>")[0])
                     else:
                         trip = True
-            base = (config.MC_DIR + "/instances/" + self.modpackName + "/.minecraft/resources").replace("\\", "/") + "/"
+            base = (config.MC_DIR + "/instances/" + modpackJsonName + "/.minecraft/resources").replace("\\", "/") + "/"
             for file in md5List:
                 if not os.path.exists(base + file):
                     with requests.get("https://resourceproxy.pymcl.net/MinecraftResources/" + file, stream=True) as response:
