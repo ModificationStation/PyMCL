@@ -85,7 +85,7 @@ So many bugs. SO MANY MIXINS.
 \* Fixed a crash when installing a partial modpack that didnt have a bin folder.  
 \* Fixed the skin and cape fix proxy not working on really old versions of minecraft.  
 
-### Upcoming a0.6-pre3
+### a0.6-pre3
 What pre2 was meant to be.
 
 \+ Links in the blog section are now clickable. They will open in your default browser.
@@ -94,6 +94,18 @@ What pre2 was meant to be.
 \+ MultiMC instance support. This is extremely experimental and may not work with some modpacks.  
 \* Fixed PyMCL not deleting META-INF when needed.  
 \* Fixed random crashes when closing the instance manager for good.  
+
+### a0.6-pre3.1
+Bugfix  
+
+\* Fixed not launching minecraft on unix systems because I was using the wrong syntax for a command.  
+
+### a0.6-pre3.2
+Never let me QA test.  
+
+\* Fixed resources not being downloaded into the right folder.  
+\* Fixed the unix compile script not uncluding mitmproxy resources.  
+\* Fixed the unit start script not working because I was referencing a non-existent file.  
 
 ### Upcoming a0.6-pre4
 Woo!!!11 Automate EVERYTHING!  
@@ -104,7 +116,8 @@ Woo!!!11 Automate EVERYTHING!
 \+ Automatic "dumb" mod installing. (just copies contents to mc.jar)   
 \+ Automatic launcher updates?  
 
-## Upcoming a0.6-pre5
+## Upcoming a0.6
+Its about time I stopped doing prereleases.  
 
 \+ Automatic "semi-smart" mod installing. Most likely only gonna support optional classes and folders though.  
 
@@ -114,4 +127,4 @@ Woo!!!11 Automate EVERYTHING!
 ~ Yet another rewrite. I have learned a lot about how pyqt5 works and I cant bear to look at some of my old code.  
 ~ Better theming system.  
 \+ Custom compiler + qt modules? This is in the faaaar future though.  
-\+ Minecraft launches embedded in the launcher like the old minecraft launchers?
+\+ Minecraft launches embedded in the launcher like the old minecraft launchers?  
