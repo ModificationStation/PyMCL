@@ -13,6 +13,9 @@ Version format: \<prefix\>major.minor.bugfix
 - Exceptions:
 - - Pre: pre release versions will have pre-number appended to it. These versions should NOT be used if you have instances you care about.
 
+[Latest release](#a06-pre32)  
+[Latest in-progress launcher version](#a06-pre4)
+
 
 ### a0.1
 
@@ -67,7 +70,7 @@ The beginning of something awesome.
 Some nice things ive been working on.
 
 \#\+ A proper wiki. (WIP)  
-\#\+\+ Online repo of mods, texturepacks and themes that can be installed.  
+\#\+\+ Online repo of modpacks that can be installed.  
 \+ Command line arguments! Allows exporting of instances and overriding of install directory along with some more options coming in the future! Use -h to get started.  
 \+ There is now an instance setting to use a proxy to fix skins, sounds and capes!
 \* Fixed instance settings not loading or saving correctly.  
@@ -80,7 +83,7 @@ So many bugs. SO MANY MIXINS.
 \- Removed some commented out legacy code.  
 \* Techically a modification, but minecraft now launches via MinecraftApplet.  
 \* Username not being set on minecraft a1.2.6 and below should be fixed.  
-\* Fixed a crash when logon failes.  
+\* Fixed a crash when logon fails.  
 \* Fixed a crash when installing local modpacks.  
 \* Fixed a crash when installing a partial modpack that didnt have a bin folder.  
 \* Fixed the skin and cape fix proxy not working on really old versions of minecraft.  
@@ -109,22 +112,63 @@ Never let me QA test.
 
 ### Upcoming a0.6-pre4
 Woo!!!11 Automate EVERYTHING!  
+Estimated release date: mid June - early July  
 
-\+ Automated instance creation.   
-\#\+\+ Online mod repository with tons of converted mods.  
+\+ Automated blank instance creation.   
+\+ Added the ability to cache sounds, LWJGL and MC versions. No more 200mb downloads every time you make an instance!  
 \+ Revamped instance manager.  
-\+ Automatic "dumb" mod installing. (just copies contents to mc.jar)   
-\+ Automatic launcher updates?  
+\+ Automatic "dumb" mod installing. (just copies contents of zip to mc.jar)   
+\* Fixed the instance manager not blocking input to the main window.
+\* Fixed a temp folder issue which could cause garbled instances, slow startup and crashes. (woops!)
 
-## Upcoming a0.6
+### Upcoming website changes
+Lets start to change how we install mods!  
+Ordered in chronological order of release.
+Accounts should be made reflecting your in game name, or certain features wont work.
+Estimated release date: late June - late July as features roll out.
+
+\#\+ Online mod repository with tons of converted mods.  
+\#\+ Closed beta of the account system with a group of people to try and break the website.
+\#\+ A public account system for modpacks and mods and the ability to create and edit modpack and mod pages.  
+\#\+ A public modpack and mod uploading system!
+\#\+ A report button to flag a mod/modpack to me and any web admins.
+\#\+ A custom cape system for people to upload a cape of thier choice.
+\#\+ A public API to allow the use of custom clients for certain actions.
+
+### Upcoming a0.6
 Its about time I stopped doing prereleases.  
+Estimated release date: mid July
 
+\+ Automatic launcher updates?  
 \+ Automatic "semi-smart" mod installing. Most likely only gonna support optional classes and folders though.  
 
-### Upcoming b1.0+
+### Upcoming website changes
+Power to the user!  
+Estimated release date: gradual roll-out over late July to potentially late August
 
+\#\+ Slightly prettier font page that explains the launcher better.  
+\#\+ Proper API documentation.  
+\#\+ A filled out wiki.  
+\#\+ Unification of website design.  
+\#\+ The ability to use uploaded pymcl launcher themes on the website?
+
+### Upcoming b1.0
+Lets make things look pretty!  
+Estimated release date: late August to December  
+
+\+ A fully fleshed out mod installer which can spot conflicting mods and suggest solutions, lets the user pick optional config options and have a pretty mod image display on the modlist in a given modpack.  
+\+ A rudimentary modlist system. More documentation on this closer to release.  
 ~ UI overhaul. Some of the UI isnt fit for purpose anymore.  
-~ Yet another rewrite. I have learned a lot about how pyqt5 works and I cant bear to look at some of my old code.  
+~ Yet another global refactor. I have learned a lot about how pyqt5 works and some of my old code is terrible.  
 ~ Better theming system.  
-\+ Custom compiler + qt modules? This is in the faaaar future though.  
+\+ Custom compile script to reduce likelyhood of incorrect python versions being used.
+
+
+### Upcoming b1.1+
+
+\+ A real exporting system including the ability to create ".pymclcl" files. More documentation on how these might work after b1.0.  
 \+ Minecraft launches embedded in the launcher like the old minecraft launchers?  
+
+### Release+
+
+\+ Custom compiler + qt modules? This is in the faaaar future though.  
