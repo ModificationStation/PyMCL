@@ -2,18 +2,16 @@ from mitmproxy import proxy, options, http
 from mitmproxy.tools.dump import DumpMaster
 import sys
 import getopt
-import requests
-import json
-import base64
 
 class AddHeader:
     @staticmethod
     def request(flow):
-        if flow.request.pretty_host == "s3.amazonaws.com":
+        if flow.request.pretty_host == "s3.amazonaws.com" or flow.request.pretty_host == "slins.minecraft.net":
 
             if doSoundFix:
-                if flow.request.path.__contains__("MinecraftResources"):
+                if flow.request.path.__contains__("MinecraftResources") or flow.request.path.__contains__("/resources/"):
                     flow.request.host = "resourceproxy.pymcl.net"
+                    flow.request.path = "/MinecraftResources"
 
             if doSkinFix:
                 if flow.request.path.__contains__("MinecraftSkins"):

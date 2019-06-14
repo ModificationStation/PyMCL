@@ -1,5 +1,6 @@
 import config
 import utils
+import signal
 import math
 import os
 import os.path
@@ -315,6 +316,7 @@ class mainWindow(QWidget):
             self.launchArgs.append("--lwjgl-dir=" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin")
             self.launchArgs.append("--jar=" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin/minecraft.jar")
             self.launchArgs.append("--native-dir=" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft/bin/natives")
+            self.launchArgs.append("--parent-dir=" + config.MC_DIR + "/instances/" + self.currentInstance + "/.minecraft")
             self.launchArgs.append("--height=520")
             self.launchArgs.append("--width=870")
             self.launchArgs.append("--x=" + str(int((app.desktop().screenGeometry().width() / 2) - 435)))
@@ -324,9 +326,9 @@ class mainWindow(QWidget):
                 self.launchArgs.append(self.creds.split(" ")[1])
             except:
                 pass
-            print(self.creds.split(" "))
+            utils.logger.info(self.creds.split(" "))
 
-            print(self.launchArgs[:-1])
+            utils.logger.info(self.launchArgs[:-1])
 
             # Overrides all references to %appdata%, $user.home and $home
             os.environ["APPDATA"] = config.MC_DIR + "/instances/" + self.currentInstance
@@ -347,19 +349,22 @@ class mainWindow(QWidget):
         except Exception as e:
             # Tragic.
             self.error("Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.\nCheck your launch args if you have set any too.")
-            print("Rejected username: " + self.loginBox.text())
-            print(e)
+            utils.logger.info("Rejected username: " + self.loginBox.text())
+            utils.logger.info(e)
 
     # Cause we need an error box thingy without too much copypasta.
     def error(self, err):
         QMessageBox.warning(self, "Warning", err, QMessageBox.Ok, QMessageBox.Ok)
 
     def forceQuit(self):
+        utils.logger.info("Force quitting minecraft!")
+        utils.logger.info("Closing proxy thread.")
         try:
             self.proxy.stop()
             self.proxy = ""
         except:
             pass
+        utils.logger.info("Destroying minecraft process.")
         try:
             self.prc.kill()
             self.prc = ""
@@ -368,110 +373,188 @@ class mainWindow(QWidget):
 
     # Fires whe the launcher is closed.
     def closeEvent(self, event):
+        utils.logger.info("Stopping minecraft monitor thread.")
         global checkAliveTimer
         checkAliveTimer.cancel()
+
+        utils.logger.info("Disconnecting from discord rich presence.")
         try:
             self.pres.close()
         except:
             pass
-        try:
-            instanceWindow.loop.close()
-        except:
-            pass
 
         # Deletes the tmp folder. Gotta keep those directories clean!
+        utils.logger.info("Deleting temp files.")
         if os.path.exists(config.MC_DIR + "/tmp"):
             shutil.rmtree(config.MC_DIR + "/tmp")
+
+        utils.logger.close()
 
 
 # The option window. (Duh!)
 class optionWindow(QDialog):
-    # Same drill. Does background things.
+    widgets = []
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        mainWin.instanceConfig = utils.loadInstanceSettings(mainWin, mainWin.currentInstance)
+        self.setWindowModality(Qt.ApplicationModal)
         screen_resolution = app.desktop().screenGeometry()
-        self.title = config.NAME + " " + config.VER + " Options"
+        self.title = config.NAME + " " + config.VER + " Instance Configuration"
         self.setWindowIcon(QIcon(config.ICON))
-        self.left = screen_resolution.width() / 2 - (480 / 2)
-        self.top = screen_resolution.height() / 2 - (240 / 2)
+        self.left = screen_resolution.width() / 2 - 290
+        self.top = screen_resolution.height() / 2 - 170
         self.initUI()
 
-    # Same drill. Does visible things.
     def initUI(self):
         self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, 480, 240)
+        self.setGeometry(self.left, self.top, 580, 340)
         self.setFixedSize(self.size())
-        self.createLabels()
-        self.createSettingInputs()
+        self.createTabs()
+        self.createInstallTab()
+        self.createConfigTab()
+        self.createModsTab()
+        self.createSavesTab()
+
+    def createTabs(self):
+        for widget in self.widgets:
+            try:
+                widget.deleteLater()
+            except:
+                pass
+        self.widgets = []
+        self.tab = QTabWidget(self)
+        self.tab.move(1, 0)
+        self.tab.resize(self.size())
+        self.tab.resize(self.tab.width(), self.tab.height()-20)
+        self.modsContainer = QVBoxLayout(self)
+        self.savesContainer = QVBoxLayout(self)
+        self.installTab = QWidget()
+        self.savesTab = QWidget()
+        self.configTab = QWidget()
+        self.modsTab = QWidget()
+        self.tab.addTab(self.configTab, "Config")
+        self.tab.addTab(self.modsTab, "Mods")
+        self.tab.addTab(self.savesTab, "Saves")
+        self.tab.addTab(self.installTab, "Install")
+        self.modsTab.setLayout(self.modsContainer)
+        self.savesTab.setLayout(self.savesContainer)
+
+        scroll = QScrollArea(self)
+        self.modsContainer.addWidget(scroll)
+        scroll.setWidgetResizable(True)
+        scrollContent = QWidget(scroll)
+        self.modsLayout = QVBoxLayout(scrollContent)
+        scrollContent.setLayout(self.modsLayout)
+        scroll.setWidget(scrollContent)
+
+        scroll = QScrollArea(self)
+        self.savesContainer.addWidget(scroll)
+        scroll.setWidgetResizable(True)
+        scrollContent = QWidget(scroll)
+        self.savesLayout = QVBoxLayout(scrollContent)
+        scrollContent.setLayout(self.savesLayout)
+        scroll.setWidget(scrollContent)
+
+    def createInstallTab(self):
+        self.installModButton = QPushButton("Add Local Mod to Jar", self.installTab)
+        self.installModButton.resize(150, 22)
+        self.installModButton.move(5, 5)
+        self.installModButton.clicked.connect(lambda: utils.addToJar(mainWin.currentInstance, self.modZipDir.text()))
+
+        self.modZipDir = QLineEdit(self.installTab)
+        self.modZipDir.setPlaceholderText("Paste the path to your mod ZIP file here!")
+        self.modZipDir.resize(390, 22)
+        self.modZipDir.move(155, 5)
+
+        self.getDirButton = QPushButton("...", self.installTab)
+        self.getDirButton.resize(24, 22)
+        self.getDirButton.move(545, 5)
+        self.getDirButton.clicked.connect(self.getDir)
+
+    def createSavesTab(self):
+        messageLabel = QLabel("Save management comming soon(tm)!", self.savesTab)
+        messageLabel.move(185, 120)
+        messageLabel.resize(255, messageLabel.height())
+
+    def createModsTab(self):
+        messageLabel = QLabel("Mod management comming soon(tm)!", self.modsTab)
+        messageLabel.move(185, 120)
+        messageLabel.resize(255, messageLabel.height())
 
     # Same drill. Creates things.
-    def createSettingInputs(self):
+    def createConfigTab(self):
         global launcherConfig
-        self.javaArgs = QLineEdit(self, text=mainWin.instanceConfig["javaargs"])
+        # Inputs
+        self.javaArgs = QLineEdit(self.configTab, text=mainWin.instanceConfig["javaargs"])
         self.javaArgs.resize(310, 24)
         self.javaArgs.move(150, 20)
 
-        self.maxRamAllocation = QLineEdit(self, text=mainWin.instanceConfig["maxram"])
+        self.maxRamAllocation = QLineEdit(self.configTab, text=mainWin.instanceConfig["maxram"])
         self.maxRamAllocation.resize(100, 24)
-        self.maxRamAllocation.move(255, 48)
+        self.maxRamAllocation.move(205, 48)
 
-        self.minRamAllocation = QLineEdit(self, text=mainWin.instanceConfig["minram"])
+        self.minRamAllocation = QLineEdit(self.configTab, text=mainWin.instanceConfig["minram"])
         self.minRamAllocation.resize(100, 24)
         self.minRamAllocation.move(360, 48)
 
-        self.enableAutoProxySkin = QCheckBox(self)
+        self.enableAutoProxySkin = QCheckBox(self.configTab)
         self.enableAutoProxySkin.setChecked(mainWin.instanceConfig["proxyskin"])
         self.enableAutoProxySkin.move(150, 81)
 
-        self.enableAutoProxySound = QCheckBox(self)
+        self.enableAutoProxySound = QCheckBox(self.configTab)
         self.enableAutoProxySound.setChecked(mainWin.instanceConfig["proxysound"])
         self.enableAutoProxySound.move(150, 109)
 
-        self.enableAutoProxyCape = QCheckBox(self)
+        self.enableAutoProxyCape = QCheckBox(self.configTab)
         self.enableAutoProxyCape.setChecked(mainWin.instanceConfig["proxycape"])
         self.enableAutoProxyCape.move(150, 137)
 
-    def createLabels(self):
-        self.javaArgsLabel = QLabel(self, text="Java arguments:")
+        # Labelz
+        self.javaArgsLabel = QLabel(self.configTab, text="Java arguments:")
         self.javaArgsLabel.resize(100, 20)
         self.javaArgsLabel.move(20, 22)
 
-        self.ramAllocationLabel = QLabel(self, text="RAM Allocation:")
+        self.ramAllocationLabel = QLabel(self.configTab, text="RAM Allocation:")
         self.ramAllocationLabel.resize(100, 20)
         self.ramAllocationLabel.move(20, 50)
 
-        self.maxRamAllocationLabel = QLabel(self, text="Maximum:")
+        self.maxRamAllocationLabel = QLabel(self.configTab, text="Maximum:")
         self.maxRamAllocationLabel.move(150, 50)
         self.maxRamAllocationLabel.resize(100, 20)
 
-        self.minRamAllocationLabel = QLabel(self, text="Minimum:")
+        self.minRamAllocationLabel = QLabel(self.configTab, text="Minimum:")
         self.minRamAllocationLabel.move(310, 50)
         self.minRamAllocationLabel.resize(100, 20)
 
-        self.enableAutoProxySkinLabel = QLabel(self, text="Enable skin proxy:")
+        self.enableAutoProxySkinLabel = QLabel(self.configTab, text="Enable skin proxy:")
         self.enableAutoProxySkinLabel.resize(100, 20)
         self.enableAutoProxySkinLabel.move(20, 76)
 
-        self.enableAutoProxySoundLabel = QLabel(self, text="Enable sound proxy:")
+        self.enableAutoProxySoundLabel = QLabel(self.configTab, text="Enable sound proxy:")
         self.enableAutoProxySoundLabel.resize(100, 20)
         self.enableAutoProxySoundLabel.move(20, 104)
 
-        self.enableAutoProxyCapeLabel = QLabel(self, text="Enable cape proxy:")
+        self.enableAutoProxyCapeLabel = QLabel(self.configTab, text="Enable cape proxy:")
         self.enableAutoProxyCapeLabel.resize(100, 20)
         self.enableAutoProxyCapeLabel.move(20, 132)
 
-        self.enableAutoProxySkinLabel2 = QLabel(self, text="(Breaks sounds if skinfix is installed!)")
+        self.enableAutoProxySkinLabel2 = QLabel(self.configTab, text="(Breaks sounds if skinfix is installed!)")
         self.enableAutoProxySkinLabel2.resize(250, 20)
         self.enableAutoProxySkinLabel2.move(170, 76)
 
-        self.enableAutoProxySoundLabel2 = QLabel(self, text="(Backup your resources folder if using custom sounds!)")
+        self.enableAutoProxySoundLabel2 = QLabel(self.configTab, text="(Backup your resources folder if using custom sounds!)")
         self.enableAutoProxySoundLabel2.resize(300, 20)
         self.enableAutoProxySoundLabel2.move(170, 104)
 
-        self.enableAutoProxyCapeLabel2 = QLabel(self, text="(Breaks sounds if skinfix is installed!)")
+        self.enableAutoProxyCapeLabel2 = QLabel(self.configTab, text="(Breaks sounds if skinfix is installed!)")
         self.enableAutoProxyCapeLabel2.resize(250, 20)
         self.enableAutoProxyCapeLabel2.move(170, 132)
+
+    def getDir(self):
+        fileName, _ = QFileDialog.getOpenFileName(self, "Select a Mod ZIP File", os.path.expanduser("~"), "Mod Archive (*.zip;*.jar)")
+        if fileName:
+            self.modZipDir.setText(fileName)
+
 
     # Fires when options window is closed.
     def closeEvent(self, event, *args, **kwargs):
@@ -489,6 +572,7 @@ class optionWindow(QDialog):
 class instanceWindow(QDialog):
     widgets = []
     repoWidgets = []
+    cacheTabWidgets = []
     installModpack = utils.installModpack()
     getModpackFS = utils.getModpackFS()
     getModpackURL = utils.getModpackURL()
@@ -497,6 +581,7 @@ class instanceWindow(QDialog):
     # Same drill. Does background things.
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setWindowModality(Qt.ApplicationModal)
         self.progressWin = installWindow(self)
         self.getModpackRepo.result.connect(self.updateRepo)
         optionWindow.launcherConfig = utils.loadSettings(self)
@@ -506,18 +591,18 @@ class instanceWindow(QDialog):
         self.left = screen_resolution.width() / 2 - 290
         self.top = screen_resolution.height() / 2 - 170
         self.initUI()
+        self.getModpackRepo.start()
 
     # Same drill. Does showy things.
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, 580, 340)
         self.setFixedSize(self.size())
-        self.listInstances()
+        self.createTabs()
         self.createButtons()
         self.createStatus()
         self.createInput()
         self.show()
-        self.getModpackRepo.start()
 
     def updateRepo(self, result, modpacks):
         for widget in self.repoWidgets:
@@ -545,10 +630,12 @@ class instanceWindow(QDialog):
                 group.setLayout(vbox)
                 self.modpackRepoLayout.addWidget(group)
                 self.repoWidgets.append(widget)
+                self.repoWidgets.append(widget1)
+                self.repoWidgets.append(widget2)
                 self.repoWidgets.append(group)
 
     # I sorta figured this out. Still hella bad. Will be sorted sometime in the future.
-    def listInstances(self):
+    def createTabs(self):
         for widget in self.widgets:
             try:
                 widget.deleteLater()
@@ -560,22 +647,18 @@ class instanceWindow(QDialog):
         self.tab.resize(self.size())
         self.tab.resize(self.tab.width(), self.tab.height()-20)
         self.removeInstanceContainer = QVBoxLayout(self)
-        self.removeModpackContainer = QVBoxLayout(self)
-        self.installModpackContainer = QVBoxLayout(self)
+        self.cacheTabContainer = QVBoxLayout(self)
         self.modpackRepoContainer = QVBoxLayout(self)
         self.addInstanceTab = QWidget()
         self.removeInstanceTab = QWidget()
-        self.installModpackTab = QWidget()
-        self.removeModpackTab = QWidget()
+        self.cacheTab = QWidget()
         self.modpackRepoTab = QWidget()
-        self.tab.addTab(self.addInstanceTab, "Install Modpacks")
+        self.tab.addTab(self.addInstanceTab, "Create an Instance")
         self.tab.addTab(self.modpackRepoTab, "Modpack Repo")
         self.tab.addTab(self.removeInstanceTab, "Delete Instances")
-        self.tab.addTab(self.installModpackTab, "Install Cached Modpacks")
-        self.tab.addTab(self.removeModpackTab, "Delete Cached Modpacks")
+        self.tab.addTab(self.cacheTab, "Manage Cached Modpacks")
         self.removeInstanceTab.setLayout(self.removeInstanceContainer)
-        self.removeModpackTab.setLayout(self.removeModpackContainer)
-        self.installModpackTab.setLayout(self.installModpackContainer)
+        self.cacheTab.setLayout(self.cacheTabContainer)
         self.modpackRepoTab.setLayout(self.modpackRepoContainer)
 
         scroll = QScrollArea(self)
@@ -588,19 +671,11 @@ class instanceWindow(QDialog):
         scroll.setWidget(scrollContent)
 
         scroll = QScrollArea(self)
-        self.removeModpackContainer.addWidget(scroll)
+        self.cacheTabContainer.addWidget(scroll)
         scroll.setWidgetResizable(True)
         scrollContent = QWidget(scroll)
-        self.removeModpackLayout = QVBoxLayout(scrollContent)
-        scrollContent.setLayout(self.removeModpackLayout)
-        scroll.setWidget(scrollContent)
-
-        scroll = QScrollArea(self)
-        self.installModpackContainer.addWidget(scroll)
-        scroll.setWidgetResizable(True)
-        scrollContent = QWidget(scroll)
-        self.installModpackLayout = QVBoxLayout(scrollContent)
-        scrollContent.setLayout(self.installModpackLayout)
+        self.cacheTabLayout = QVBoxLayout(scrollContent)
+        scrollContent.setLayout(self.cacheTabLayout)
         scroll.setWidget(scrollContent)
 
         scroll = QScrollArea(self)
@@ -617,10 +692,11 @@ class instanceWindow(QDialog):
         self.refreshButton.setIcon(icon)
         self.refreshButton.clicked.connect(self.getModpackRepo.start)
 
-
         self.updateInstanceList()
+        self.updateCacheList()
 
     def updateInstanceList(self):
+        utils.areYouThere(config.MC_DIR + "/instances")
         for widget in self.widgets:
             widget.deleteLater()
 
@@ -633,21 +709,37 @@ class instanceWindow(QDialog):
             self.removeInstanceLayout.addWidget(widget)
             self.widgets.append(widget)
 
+    def updateCacheList(self):
         utils.areYouThere(config.MC_DIR + "/modpackzips")
         modpacks = [f for f in os.listdir(config.MC_DIR + "/modpackzips") if os.path.isfile(config.MC_DIR + "/modpackzips/" + f)]
-        for modpack in modpacks:
-            widget = QPushButton(self, text="Delete " + modpack + ".")
-            widget.clicked.connect(functools.partial(utils.rmModpack, modpack, self))
-            self.removeModpackLayout.addWidget(widget)
-            self.widgets.append(widget)
 
-        utils.areYouThere(config.MC_DIR + "/modpackzips")
-        modpacks = [f for f in os.listdir(config.MC_DIR + "/modpackzips") if os.path.isfile(config.MC_DIR + "/modpackzips/" + f) and (config.MC_DIR + "/modpackzips/" + f).endswith(".zip")]
+        for widget in self.cacheTabWidgets:
+            try:
+                widget.deleteLater()
+            except:
+                pass
+
+        self.repoWidgets = []
+
         for modpack in modpacks:
+            vbox = QVBoxLayout()
+            group = QGroupBox(modpack)
             widget = QPushButton(self, text="Install " + modpack + ".")
-            widget.clicked.connect(functools.partial(self.installModpackWrapper, os.path.splitext(modpack)[0]))
-            self.installModpackLayout.addWidget(widget)
-            self.widgets.append(widget)
+            widget1 = QPushButton(self, text="Delete " + modpack + ".")
+            widget2 = QTextEdit(self)
+            widget2.setText("A generic ZIP modpack.")
+            widget2.setReadOnly(True)
+            widget.clicked.connect(functools.partial(self.installModpackWrapper, config.MC_DIR + "/modpackzips/" + modpack))
+            widget1.clicked.connect(functools.partial(self.removeModpack, config.MC_DIR + "/modpackzips/" + modpack, modpack))
+            vbox.addWidget(widget)
+            vbox.addWidget(widget1)
+            vbox.addWidget(widget2)
+            group.setLayout(vbox)
+            self.cacheTabLayout.addWidget(group)
+            self.cacheTabWidgets.append(widget)
+            self.cacheTabWidgets.append(widget1)
+            self.cacheTabWidgets.append(widget2)
+            self.cacheTabWidgets.append(group)
 
     def createButtons(self):
         # Local filesystem crap
@@ -666,14 +758,16 @@ class instanceWindow(QDialog):
         self.openDirButton.move(5, self.height()-70)
         self.openDirButton.clicked.connect(self.openDir)
 
-        self.messageLabel = QLabel("Automated instance creation comming soon(tm)!", self.addInstanceTab)
-        self.messageLabel.move(160, self.height()-170)
-
         # Url crap
         self.installModpackUrlButton = QPushButton("Install Modpack from URL", self.addInstanceTab)
         self.installModpackUrlButton.resize(150, 22)
         self.installModpackUrlButton.move(5, 34)
         self.installModpackUrlButton.clicked.connect(lambda: self.getModpackURLWrapper(self.modpackURL.text()))
+
+        self.instanceVersionButton = QPushButton(self.addInstanceTab, text="Create Blank Instance")
+        self.instanceVersionButton.resize(150, 22)
+        self.instanceVersionButton.move(5, 63)
+        self.instanceVersionButton.clicked.connect(lambda: self.installModpackWrapper(self.instanceName.text(), True, self.instanceVersion.currentText()))
 
     def createStatus(self):
         self.status = QLabel(self)
@@ -683,12 +777,24 @@ class instanceWindow(QDialog):
 
     def createInput(self):
         self.modpackZipDir = QLineEdit(self.addInstanceTab)
+        self.modpackZipDir.setPlaceholderText("Paste the path to your modpack ZIP file here!")
         self.modpackZipDir.resize(390, 22)
         self.modpackZipDir.move(155, 5)
 
         self.modpackURL = QLineEdit(self.addInstanceTab)
+        self.modpackURL.setPlaceholderText("Paste the URL to download your modpack ZIP from here!")
         self.modpackURL.resize(390, 22)
         self.modpackURL.move(155, 34)
+
+        self.instanceName = QLineEdit(self.addInstanceTab)
+        self.instanceName.setPlaceholderText("Instance name")
+        self.instanceName.resize(194, 22)
+        self.instanceName.move(155, 63)
+
+        self.instanceVersion = QComboBox(self.addInstanceTab)
+        self.instanceVersion.addItems(utils.getMCVersions().keys())
+        self.instanceVersion.resize(194, 22)
+        self.instanceVersion.move(351, 63)
 
     def progressWinWrapper(self):
         if self.progressWin.iWantToDie == True:
@@ -700,11 +806,9 @@ class instanceWindow(QDialog):
         self.progressWin.close()
         self.updateInstanceList()
 
-
-
-    def installModpackWrapper(self, modpackName):
+    def installModpackWrapper(self, modpackName, isVanilla=False, mcVer=""):
         self.installModpack.stop()
-        self.installModpack = utils.installModpack(modpackName)
+        self.installModpack = utils.installModpack(modpackName, isVanilla, mcVer)
         self.installModpack.done.connect(self.modpackInstallDone)
         self.installModpack.starting.connect(self.progressWinWrapper)
         self.installModpack.updateIStatus.connect(self.updateIStatus)
@@ -725,6 +829,14 @@ class instanceWindow(QDialog):
         self.getModpackFS.starting.connect(self.progressWinWrapper)
         self.getModpackFS.installModpack.connect(self.installModpackWrapper)
         self.getModpackFS.start()
+
+    def removeModpack(self, dir, name="this"):
+
+        result = QMessageBox.question(self, "Are you sure?", "Are you sure you want to delete " + name + "?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if result == QMessageBox.Yes:
+            os.unlink(dir)
+            self.updateCacheList()
 
     @staticmethod
     def openDir():
@@ -749,7 +861,7 @@ class instanceWindow(QDialog):
         self.status.setStyleSheet("color: " + color + "; background-color: " + bgcolor + ";")
 
     def updateIStatus(self, text):
-        print(text)
+        utils.logger.info(text)
         try:
             if text.startswith("[") and self.progressWin.status.toPlainText().split("\n")[len(self.progressWin.status.toPlainText().split("\n"))-2].startswith("["):
                 newtext = self.progressWin.status.toPlainText().split("\n")
@@ -783,8 +895,9 @@ class installWindow(QDialog):
     # Same drill. Does background things.
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setWindowModality(Qt.ApplicationModal)
         screen_resolution = app.desktop().screenGeometry()
-        self.title = config.NAME + " " + config.VER + " Modpack Installer"
+        self.title = config.NAME + " " + config.VER + " Instance Creator"
         self.setWindowIcon(QIcon(config.ICON))
         self.left = screen_resolution.width() / 2 - 450
         self.top = screen_resolution.height() / 2 - 220
@@ -820,11 +933,20 @@ class installWindow(QDialog):
             self.status.clear()
 
 
-# sys.stdout = open(config.MC_DIR + "/" + str(time.time()) + ".log", "w")
+try:
+    # sys.stdout = open(config.MC_DIR + "/" + str(time.time()) + ".log", "w")
+    signal.signal(signal.SIGTERM, lambda num, frame: utils.logger.close())
+    threadingEvent = threading.Event()
 
-threadingEvent = threading.Event()
+    app = QApplication([])
+    mainWin = mainWindow()
 
-app = QApplication([])
-mainWin = mainWindow()
-
-sys.exit(app.exec_())
+    sys.exit(app.exec_())
+except Exception as e:
+    try:
+        utils.print_exc()
+    except:
+        pass
+    with open(config.MC_DIR + "/crash.log", "w") as file:
+        file.write(str(e))
+    sys.exit(1)

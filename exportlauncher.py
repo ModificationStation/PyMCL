@@ -132,45 +132,45 @@ class exportWindow(QWidget):
         self.doSoundRemoval = isChecked
 
     def createModpack(self):
-        print("Copying instance to ~/tmp")
+        utils.logger.info("Copying instance to ~/tmp")
         shutil.copytree(config.MC_DIR + "/instances/" + self.currentInstance, config.MC_DIR + "/tmp/" + self.currentInstance)
-        print("Copied.")
+        utils.logger.info("Copied.")
         binpath = config.MC_DIR + "/tmp/" + self.currentInstance + "/.minecraft/bin/"
         mcpath = config.MC_DIR + "/tmp/" + self.currentInstance + "/.minecraft/"
 
         if self.doSoundRemoval or self.makePyMCLModpack:
-            print("Getting sound MD5")
+            utils.logger.info("Getting sound MD5")
             try:
                 soundsMD5 = self.getSoundMD5()
-                print("MD5 retrieved.\nCulling vanilla resources")
+                utils.logger.info("MD5 retrieved.\nCulling vanilla resources")
                 self.cull("resources", soundsMD5)
-                print("Vanilla resources removed.")
+                utils.logger.info("Vanilla resources removed.")
             except:
-                traceback.print_exc()
-                print("An error occurred when trying to remove vanilla resources.")
+                utils.print_exc()
+                utils.logger.info("An error occurred when trying to remove vanilla resources.")
 
         if self.doClassRemoval or self.makePyMCLModpack:
-            print("Extracting minecraft.jar")
+            utils.logger.info("Extracting minecraft.jar")
             try:
                 shutil.unpack_archive(binpath + "minecraft.jar", binpath + "minecraft", "zip")
-                print("Extracted.\nGetting class md5")
+                utils.logger.info("Extracted.\nGetting class md5")
                 classMD5 = self.getClassMD5()
-                print("MD5 Retrieved.\nCulling vanilla classes")
+                utils.logger.info("MD5 Retrieved.\nCulling vanilla classes")
                 self.cull("bin/minecraft", classMD5)
-                print("Vanilla classes removed.\nRepacking jar")
+                utils.logger.info("Vanilla classes removed.\nRepacking jar")
                 shutil.make_archive(binpath + "minecraft", "zip", binpath + "minecraft")
                 try:
                     os.unlink(binpath + "minecraft.jar")
                 except:
-                    traceback.print_exc()
+                    utils.print_exc()
                 os.rename(binpath + "minecraft.zip", binpath + "minecraft.jar")
                 shutil.rmtree(binpath + "minecraft")
             except:
-                traceback.print_exc()
-                print("An error occurred when trying to remove vanilla resources.")
+                utils.print_exc()
+                utils.logger.info("An error occurred when trying to remove vanilla resources.")
 
         if self.doLWJGLRemoval or self.makePyMCLModpack:
-            print("Removing LWJGL files.")
+            utils.logger.info("Removing LWJGL files.")
             try:
                 os.unlink(binpath + "lwjgl.jar")
             except:
@@ -191,10 +191,10 @@ class exportWindow(QWidget):
                 shutil.rmtree(binpath + "natives")
             except:
                 pass
-            print("LWJGL files removed, if any existed.")
-        print("Creating modpack.")
+            utils.logger.info("LWJGL files removed, if any existed.")
+        utils.logger.info("Creating modpack.")
         shutil.make_archive(config.MC_DIR + "/tmp/" + self.currentInstance, "zip", config.MC_DIR + "/tmp/" + self.currentInstance)
-        print("Modpack created.\nMoving to export folder.")
+        utils.logger.info("Modpack created.\nMoving to export folder.")
 
         utils.areYouThere(config.MC_DIR + "/modpackzips/export/")
         if os.path.exists(config.MC_DIR + "/modpackzips/export/" + self.currentInstance + ".zip"):
@@ -202,7 +202,7 @@ class exportWindow(QWidget):
 
         shutil.move(config.MC_DIR + "/tmp/" + self.currentInstance + ".zip", config.MC_DIR + "/modpackzips/export")
 
-        print("Modpack created.\nBe sure to make a modpack.json file for the modpack!")
+        utils.logger.info("Modpack created.\nBe sure to make a modpack.json file for the modpack!")
 
 
     # Screw XML. It's terrible. I chose to use it because I only had to add a single 10 character line to my minecraft resources php file. Fight me.
@@ -221,19 +221,19 @@ class exportWindow(QWidget):
 
     def getClassMD5(self):
 
-        print("https://files.pymcl.net/client/" + self.currentInstanceVersion + "/classmd5.json")
+        utils.logger.info("https://files.pymcl.net/client/" + self.currentInstanceVersion + "/classmd5.json")
         try:
             with requests.get("https://files.pymcl.net/client/" + self.currentInstanceVersion + "/classmd5.json") as response:
                 classMD5 = json.loads(response.content)
         except:
-            traceback.print_exc()
+            utils.print_exc()
             classMD5 = None
 
         return classMD5
 
     def cull(self, pathininstance, md5List):
         base = (config.MC_DIR + "/tmp/" + self.currentInstance + "/.minecraft/" + pathininstance).replace("\\", "/") + "/"
-        print(base)
+        utils.logger.info(base)
         for root, dirs, files in os.walk(base):
             root = root.replace("\\", "/") + "/"
 
