@@ -13,8 +13,8 @@ Version format: \<prefix\>major.minor.bugfix
 - Exceptions:
 - - Pre: pre release versions will have pre-number appended to it. These versions should NOT be used if you have instances you care about.
 
-[Latest release](#a06-pre32)  
-[Latest in-progress launcher version](#a06-pre4)
+[Latest release](#a06-pre4)  
+[Latest in-progress version](#upcoming-website-changes)
 
 
 ### a0.1
@@ -110,18 +110,23 @@ Never let me QA test.
 \* Fixed the unix compile script not uncluding mitmproxy resources.  
 \* Fixed the unit start script not working because I was referencing a non-existent file.  
 
-### Upcoming a0.6-pre4
+### a0.6-pre4
 Woo!!!11 Automate EVERYTHING!  
 Estimated release date: mid June - early July  
 
-~ Removed b1.8 from the blog.html.
+~ Removed b1.8 from the blog.html.  
 ~ Added support for more "modern" versions of minecraft into the proxy.  
 \+ Automated blank instance creation.   
 \+ Added the ability to cache sounds, LWJGL and MC versions. No more 200mb downloads every time you make an instance!  
 \+ Revamped options window.  
 \+ Automatic "dumb" mod installing. (just copies contents of zip to mc.jar)   
-\* Fixed the instance manager not blocking input to the main window.
-\* Fixed a temp folder issue which could cause garbled instances, slow startup and crashes. (woops!)
+\* Fixed the instance manager not blocking input to the main window.  
+\* Fixed a temp folder issue which could cause garbled instances, slow startup and crashes. (woops!)  
+
+### a0.6-pre4.1
+Woops. Again.  
+
+\* Fixed a temp folder issue which caused crashes because of folders not being generated properly.  
 
 ### Upcoming website changes
 Lets start to change how we install mods!  
@@ -152,7 +157,7 @@ Estimated release date: gradual roll-out over late July to potentially late Augu
 \#\+ Proper API documentation.  
 \#\+ A filled out wiki.  
 \#\+ Unification of website design.  
-\#\+ The ability to use uploaded pymcl launcher themes on the website?
+\#\+ The ability to use uploaded pymcl launcher themes on the website?  
 
 ### PyMCS
 What could this be?  
@@ -165,7 +170,7 @@ Estimated release date: when it's ready.
 
 \+ A fully fleshed out mod installer which can spot conflicting mods and suggest solutions, lets the user pick optional config options and have a pretty mod image display on the modlist in a given modpack.  
 \+ A rudimentary modlist system. More documentation on this closer to release.  
-\+ Custom compile script to reduce likelyhood of incorrect python versions being used.
+\+ Custom compile script to reduce likelyhood of incorrect python versions being used.  
 ~ UI overhaul. Some of the UI isnt fit for purpose anymore.  
 ~ Yet another global refactor. I have learned a lot about how pyqt5 works and some of my old code is terrible.  
 ~ Better theming system.  

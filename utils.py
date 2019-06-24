@@ -518,6 +518,7 @@ class installModpack(QThread):
                         self.updateIStatus.emit("[%s%s]" % ("=" * done, " " * (50-done)))
                         oldDone = done
 
+        areYouThere(config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin")
         shutil.copy(config.MC_DIR + "/newinstcache/versions/" + mcVer + ".jar", config.MC_DIR + "/tmp/" + self.modpackName + "/.minecraft/bin/vanillamc.jar")
 
         if not isVanilla:

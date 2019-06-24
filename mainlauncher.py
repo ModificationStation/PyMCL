@@ -302,7 +302,6 @@ class mainWindow(QWidget):
                     self.launchArgs.append("-" + arg)
 
             if self.instanceConfig["proxyskin"] or self.instanceConfig["proxysound"] or self.instanceConfig["proxycape"]:
-
                 self.proxy = utils.minecraftProxy(doSkinFix=self.instanceConfig["proxyskin"], doSoundFix=self.instanceConfig["proxysound"], doCapeFix=self.instanceConfig["proxycape"], loop=asyncio.new_event_loop())
                 self.proxy.start()
                 self.launchArgs.append("-Dhttp.proxyHost=localhost")
