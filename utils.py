@@ -562,7 +562,7 @@ class installModpack(QThread):
 
             dl = 0
             total_length = int(total_length)
-            with io.open(config.MC_DIR + "/tmp/lwjgl.zip", 'wb') as fd:
+            with io.open(config.MC_DIR + "/newinstcache/lwjgl.zip", 'wb') as fd:
                 oldDone = 0
                 for chunk in response.iter_content(chunk_size=4096):
                     dl += len(chunk)

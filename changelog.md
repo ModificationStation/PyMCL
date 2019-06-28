@@ -13,7 +13,7 @@ Version format: \<prefix\>major.minor.bugfix
 - Exceptions:
 - - Pre: pre release versions will have pre-number appended to it. These versions should NOT be used if you have instances you care about.
 
-[Latest release](#a06-pre4)  
+[Latest release](#a06-pre4.2)  
 [Latest in-progress version](#upcoming-website-changes)
 
 
@@ -127,6 +127,11 @@ Estimated release date: mid June - early July
 Woops. Again.  
 
 \* Fixed a temp folder issue which caused crashes because of folders not being generated properly.  
+
+### a0.6-pre4.2
+Definately not QA testing.
+
+\* Fixed an issue where lwjgl wasnt downloaded to the right folder.  
 
 ### Upcoming website changes
 Lets start to change how we install mods!  

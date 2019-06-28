@@ -278,7 +278,7 @@ SUPPORTED_VERSIONS = {
     }
 }
 
-VER = "v0.6 Alpha Pre 4"
+VER = "v0.6 Alpha Pre 4.2"
 
 PRINT_INFO = True
 PRINT_WARN = True
