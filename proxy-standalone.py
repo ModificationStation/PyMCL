@@ -62,13 +62,13 @@ for opt, arg in opts:
     if opt == '-h':
         print(helptext)
         sys.exit()
-    elif opt in ("-s", "--soundfix"):
+    if opt in ("-s", "--soundfix"):
         doSoundFix = True
-    elif opt in ("-k", "--skinfix"):
+    if opt in ("-k", "--skinfix"):
         doSkinFix = True
-    elif opt in ("-c", "--capefix"):
+    if opt in ("-c", "--capefix"):
         doCapeFix = True
-    else:
+    if doSoundFix == False and doSkinFix == False and doCapeFix == false:
         print(helptext)
         sys.exit()
 
