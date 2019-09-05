@@ -278,7 +278,7 @@ SUPPORTED_VERSIONS = {
     }
 }
 
-VER = "v0.6 EOL"
+VER = "v0.6.1 EOL"
 
 PRINT_INFO = True
 PRINT_WARN = True

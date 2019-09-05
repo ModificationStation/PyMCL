@@ -593,6 +593,7 @@ class optionWindow(QDialog):
         mainWin.instanceConfig["proxyskin"] = self.enableAutoProxySkin.isChecked()
         mainWin.instanceConfig["proxysound"] = self.enableAutoProxySound.isChecked()
         mainWin.instanceConfig["proxycape"] = self.enableAutoProxyCape.isChecked()
+        mainWin.instanceConfig["javaloc"] = self.javaLoc.text()
         utils.saveInstanceSettings(mainWin.instanceConfig, mainWin.currentInstance)
 
 
