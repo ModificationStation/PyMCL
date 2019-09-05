@@ -296,11 +296,14 @@ class mainWindow(QWidget):
             elif not self.loginBox.text().isalnum():
                 raise TypeError("Username not alphanumeric!")
 
-            self.launchArgs = ["java"]
+            self.launchArgs = []
+            if self.instanceConfig["javaloc"] != "":
+                self.launchArgs.append(self.instanceConfig["javaloc"])
+            else:
+                self.launchArgs.append("java")
             for arg in self.instanceConfig["javaargs"].split(" -"):
                 if not len(arg) < 3:
                     self.launchArgs.append("-" + arg)
-
             if self.instanceConfig["proxyskin"] or self.instanceConfig["proxysound"] or self.instanceConfig["proxycape"]:
                 self.proxy = utils.minecraftProxy(doSkinFix=self.instanceConfig["proxyskin"], doSoundFix=self.instanceConfig["proxysound"], doCapeFix=self.instanceConfig["proxycape"], loop=asyncio.new_event_loop())
                 self.proxy.start()
@@ -347,7 +350,7 @@ class mainWindow(QWidget):
             self.launchArgs = []
         except Exception as e:
             # Tragic.
-            self.error("Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.\nCheck your launch args if you have set any too.")
+            self.error("Minecraft is unable to start. Make sure you have java and minecraft installed and an alphanumeric username set.\nCheck your launch args and java location if you have set any too.")
             utils.logger.info("Rejected username: " + self.loginBox.text())
             utils.logger.info(e)
 
@@ -508,6 +511,23 @@ class optionWindow(QDialog):
         self.enableAutoProxyCape.setChecked(mainWin.instanceConfig["proxycape"])
         self.enableAutoProxyCape.move(150, 137)
 
+        self.javaLoc = QLineEdit(self.configTab, text=mainWin.instanceConfig["javaargs"])
+        self.javaLoc.resize(310, 24)
+        self.javaLoc.move(150, 160)
+
+        try:
+            mainWin.instanceConfig["javaloc"]
+        except:
+            mainWin.instanceConfig["javaloc"] = ""
+        self.javaLoc = QLineEdit(self.configTab, text=mainWin.instanceConfig["javaloc"])
+        self.javaLoc.resize(310, 24)
+        self.javaLoc.move(150, 160)
+
+        self.getJavDirButton = QPushButton("...", self.configTab)
+        self.getJavDirButton.resize(24, 22)
+        self.getJavDirButton.move(465, 160)
+        self.getJavDirButton.clicked.connect(self.getJavDir)
+
         # Labelz
         self.javaArgsLabel = QLabel(self.configTab, text="Java arguments:")
         self.javaArgsLabel.resize(100, 20)
@@ -549,10 +569,19 @@ class optionWindow(QDialog):
         self.enableAutoProxyCapeLabel2.resize(250, 20)
         self.enableAutoProxyCapeLabel2.move(170, 132)
 
+        self.javaArgsLabel = QLabel(self.configTab, text="Java location:")
+        self.javaArgsLabel.resize(100, 20)
+        self.javaArgsLabel.move(20, 160)
+
     def getDir(self):
         fileName, _ = QFileDialog.getOpenFileName(self, "Select a Mod ZIP File", os.path.expanduser("~"), "Mod Archive (*.zip;*.jar)")
         if fileName:
             self.modZipDir.setText(fileName)
+
+    def getJavDir(self):
+        fileName, _ = QFileDialog.getOpenFileName(self, "Select a JRE", os.path.expanduser("~"), "JRE (*)")
+        if fileName:
+            self.javaLoc.setText(fileName)
 
 
     # Fires when options window is closed.
